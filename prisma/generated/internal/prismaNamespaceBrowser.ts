@@ -55,14 +55,17 @@ export const ModelName = {
   Session: 'Session',
   Account: 'Account',
   Verification: 'Verification',
-  UserData: 'UserData',
-  Role: 'Role',
-  Branch: 'Branch',
-  Notification: 'Notification',
-  Announcement: 'Announcement',
-  Plan: 'Plan',
-  Membership: 'Membership',
-  Client: 'Client'
+  Supplier: 'Supplier',
+  Item: 'Item',
+  Incoming: 'Incoming',
+  IncomingItem: 'IncomingItem',
+  Request: 'Request',
+  RequestItem: 'RequestItem',
+  DeliveryNote: 'DeliveryNote',
+  DeliveryNoteItem: 'DeliveryNoteItem',
+  Turnover: 'Turnover',
+  TurnoverItem: 'TurnoverItem',
+  AuditLog: 'AuditLog'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -87,13 +90,12 @@ export const UserScalarFieldEnum = {
   email: 'email',
   emailVerified: 'emailVerified',
   image: 'image',
-  createdAt: 'createdAt',
-  updatedAt: 'updatedAt',
-  banExpires: 'banExpires',
-  banReason: 'banReason',
-  banned: 'banned',
   role: 'role',
-  clientId: 'clientId'
+  banned: 'banned',
+  banReason: 'banReason',
+  banExpires: 'banExpires',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
 } as const
 
 export type UserScalarFieldEnum = (typeof UserScalarFieldEnum)[keyof typeof UserScalarFieldEnum]
@@ -146,153 +148,165 @@ export const VerificationScalarFieldEnum = {
 export type VerificationScalarFieldEnum = (typeof VerificationScalarFieldEnum)[keyof typeof VerificationScalarFieldEnum]
 
 
-export const UserDataScalarFieldEnum = {
+export const SupplierScalarFieldEnum = {
   id: 'id',
-  userId: 'userId',
-  academicYearId: 'academicYearId',
-  address: 'address',
-  avatarUrl: 'avatarUrl',
-  birthDate: 'birthDate',
-  birthPlace: 'birthPlace',
-  classId: 'classId',
-  employeeId: 'employeeId',
-  endDate: 'endDate',
-  enrollmentDate: 'enrollmentDate',
-  gender: 'gender',
-  graduationDate: 'graduationDate',
-  branchId: 'branchId',
-  nik: 'nik',
-  nisn: 'nisn',
-  parentPhone: 'parentPhone',
-  position: 'position',
-  relation: 'relation',
-  roleId: 'roleId',
-  startDate: 'startDate',
-  status: 'status',
-  studentIds: 'studentIds',
-  email: 'email',
   name: 'name',
+  contact: 'contact',
+  phone: 'phone',
+  email: 'email',
+  address: 'address',
   isActive: 'isActive',
-  clientId: 'clientId',
-  tahfidzGroupId: 'tahfidzGroupId',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const
 
-export type UserDataScalarFieldEnum = (typeof UserDataScalarFieldEnum)[keyof typeof UserDataScalarFieldEnum]
+export type SupplierScalarFieldEnum = (typeof SupplierScalarFieldEnum)[keyof typeof SupplierScalarFieldEnum]
 
 
-export const RoleScalarFieldEnum = {
-  id: 'id',
-  name: 'name',
-  description: 'description',
-  clientId: 'clientId',
-  permissions: 'permissions',
-  isActive: 'isActive'
-} as const
-
-export type RoleScalarFieldEnum = (typeof RoleScalarFieldEnum)[keyof typeof RoleScalarFieldEnum]
-
-
-export const BranchScalarFieldEnum = {
+export const ItemScalarFieldEnum = {
   id: 'id',
   code: 'code',
   name: 'name',
-  description: 'description',
-  isActive: 'isActive',
-  address: 'address',
-  phone: 'phone',
-  adminName: 'adminName',
-  signatureUrl: 'signatureUrl',
-  clientId: 'clientId',
-  createdAt: 'createdAt',
-  updatedAt: 'updatedAt'
-} as const
-
-export type BranchScalarFieldEnum = (typeof BranchScalarFieldEnum)[keyof typeof BranchScalarFieldEnum]
-
-
-export const NotificationScalarFieldEnum = {
-  id: 'id',
-  userId: 'userId',
-  title: 'title',
-  message: 'message',
-  type: 'type',
   category: 'category',
-  isRead: 'isRead',
-  link: 'link',
-  data: 'data',
-  createdAt: 'createdAt',
-  readAt: 'readAt'
-} as const
-
-export type NotificationScalarFieldEnum = (typeof NotificationScalarFieldEnum)[keyof typeof NotificationScalarFieldEnum]
-
-
-export const AnnouncementScalarFieldEnum = {
-  id: 'id',
-  title: 'title',
-  content: 'content',
-  imageUrl: 'imageUrl',
-  linkUrl: 'linkUrl',
-  startDate: 'startDate',
-  endDate: 'endDate',
-  userId: 'userId',
-  clientId: 'clientId',
-  isActive: 'isActive',
-  isPublished: 'isPublished',
-  createdAt: 'createdAt',
-  updatedAt: 'updatedAt'
-} as const
-
-export type AnnouncementScalarFieldEnum = (typeof AnnouncementScalarFieldEnum)[keyof typeof AnnouncementScalarFieldEnum]
-
-
-export const PlanScalarFieldEnum = {
-  id: 'id',
-  slug: 'slug',
-  name: 'name',
-  description: 'description',
-  price: 'price',
-  interval: 'interval',
-  features: 'features',
-  isPopular: 'isPopular',
+  brand: 'brand',
+  size: 'size',
+  unit: 'unit',
+  stockGudang: 'stockGudang',
+  stockOperasional: 'stockOperasional',
+  minStock: 'minStock',
+  supplierId: 'supplierId',
   isActive: 'isActive',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const
 
-export type PlanScalarFieldEnum = (typeof PlanScalarFieldEnum)[keyof typeof PlanScalarFieldEnum]
+export type ItemScalarFieldEnum = (typeof ItemScalarFieldEnum)[keyof typeof ItemScalarFieldEnum]
 
 
-export const MembershipScalarFieldEnum = {
+export const IncomingScalarFieldEnum = {
   id: 'id',
-  userId: 'userId',
-  planId: 'planId',
+  number: 'number',
+  receivedAt: 'receivedAt',
+  supplierId: 'supplierId',
+  documentNo: 'documentNo',
+  note: 'note',
+  createdById: 'createdById',
+  createdAt: 'createdAt'
+} as const
+
+export type IncomingScalarFieldEnum = (typeof IncomingScalarFieldEnum)[keyof typeof IncomingScalarFieldEnum]
+
+
+export const IncomingItemScalarFieldEnum = {
+  id: 'id',
+  incomingId: 'incomingId',
+  itemId: 'itemId',
+  qty: 'qty'
+} as const
+
+export type IncomingItemScalarFieldEnum = (typeof IncomingItemScalarFieldEnum)[keyof typeof IncomingItemScalarFieldEnum]
+
+
+export const RequestScalarFieldEnum = {
+  id: 'id',
+  number: 'number',
+  jobNo: 'jobNo',
+  site: 'site',
+  customer: 'customer',
+  neededAt: 'neededAt',
+  estimatedDoneAt: 'estimatedDoneAt',
+  note: 'note',
   status: 'status',
-  startDate: 'startDate',
-  endDate: 'endDate',
+  leaderId: 'leaderId',
+  adminId: 'adminId',
+  directorId: 'directorId',
+  adminNote: 'adminNote',
+  directorNote: 'directorNote',
+  decidedAt: 'decidedAt',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const
 
-export type MembershipScalarFieldEnum = (typeof MembershipScalarFieldEnum)[keyof typeof MembershipScalarFieldEnum]
+export type RequestScalarFieldEnum = (typeof RequestScalarFieldEnum)[keyof typeof RequestScalarFieldEnum]
 
 
-export const ClientScalarFieldEnum = {
+export const RequestItemScalarFieldEnum = {
   id: 'id',
-  name: 'name',
-  slug: 'slug',
-  email: 'email',
-  phone: 'phone',
-  address: 'address',
-  logoUrl: 'logoUrl',
-  isActive: 'isActive',
+  requestId: 'requestId',
+  itemId: 'itemId',
+  qty: 'qty'
+} as const
+
+export type RequestItemScalarFieldEnum = (typeof RequestItemScalarFieldEnum)[keyof typeof RequestItemScalarFieldEnum]
+
+
+export const DeliveryNoteScalarFieldEnum = {
+  id: 'id',
+  number: 'number',
+  requestId: 'requestId',
+  status: 'status',
+  vehicle: 'vehicle',
+  issuedAt: 'issuedAt',
+  confirmedAt: 'confirmedAt',
+  createdById: 'createdById',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const
 
-export type ClientScalarFieldEnum = (typeof ClientScalarFieldEnum)[keyof typeof ClientScalarFieldEnum]
+export type DeliveryNoteScalarFieldEnum = (typeof DeliveryNoteScalarFieldEnum)[keyof typeof DeliveryNoteScalarFieldEnum]
+
+
+export const DeliveryNoteItemScalarFieldEnum = {
+  id: 'id',
+  deliveryNoteId: 'deliveryNoteId',
+  itemId: 'itemId',
+  qty: 'qty',
+  boxes: 'boxes'
+} as const
+
+export type DeliveryNoteItemScalarFieldEnum = (typeof DeliveryNoteItemScalarFieldEnum)[keyof typeof DeliveryNoteItemScalarFieldEnum]
+
+
+export const TurnoverScalarFieldEnum = {
+  id: 'id',
+  deliveryNoteId: 'deliveryNoteId',
+  status: 'status',
+  note: 'note',
+  submittedById: 'submittedById',
+  submittedAt: 'submittedAt',
+  verifiedById: 'verifiedById',
+  verifiedAt: 'verifiedAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type TurnoverScalarFieldEnum = (typeof TurnoverScalarFieldEnum)[keyof typeof TurnoverScalarFieldEnum]
+
+
+export const TurnoverItemScalarFieldEnum = {
+  id: 'id',
+  turnoverId: 'turnoverId',
+  itemId: 'itemId',
+  brought: 'brought',
+  used: 'used',
+  returned: 'returned',
+  damaged: 'damaged'
+} as const
+
+export type TurnoverItemScalarFieldEnum = (typeof TurnoverItemScalarFieldEnum)[keyof typeof TurnoverItemScalarFieldEnum]
+
+
+export const AuditLogScalarFieldEnum = {
+  id: 'id',
+  actorId: 'actorId',
+  action: 'action',
+  entity: 'entity',
+  entityId: 'entityId',
+  meta: 'meta',
+  createdAt: 'createdAt'
+} as const
+
+export type AuditLogScalarFieldEnum = (typeof AuditLogScalarFieldEnum)[keyof typeof AuditLogScalarFieldEnum]
 
 
 export const SortOrder = {
@@ -301,14 +315,6 @@ export const SortOrder = {
 } as const
 
 export type SortOrder = (typeof SortOrder)[keyof typeof SortOrder]
-
-
-export const NullableJsonNullValueInput = {
-  DbNull: DbNull,
-  JsonNull: JsonNull
-} as const
-
-export type NullableJsonNullValueInput = (typeof NullableJsonNullValueInput)[keyof typeof NullableJsonNullValueInput]
 
 
 export const QueryMode = {
@@ -325,13 +331,4 @@ export const NullsOrder = {
 } as const
 
 export type NullsOrder = (typeof NullsOrder)[keyof typeof NullsOrder]
-
-
-export const JsonNullValueFilter = {
-  DbNull: DbNull,
-  JsonNull: JsonNull,
-  AnyNull: AnyNull
-} as const
-
-export type JsonNullValueFilter = (typeof JsonNullValueFilter)[keyof typeof JsonNullValueFilter]
 

@@ -9,11 +9,9 @@
   --font-sans:
     var(--font-inter), ui-sans-serif, system-ui, -apple-system, "Segoe UI",
     Roboto, "Helvetica Neue", Arial, sans-serif;
-  /* Arabic script — surah names from `surah_quran.name`. */
-  --font-arabic: var(--font-naskh), "Noto Naskh Arabic", serif;
   --font-mono:
-    var(--font-plex-mono), ui-monospace, "SF Mono", SFMono-Regular, Menlo,
-    Consolas, monospace;
+    ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, monospace;
+
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -29,11 +27,6 @@
   --color-chart-3: var(--chart-3);
   --color-chart-2: var(--chart-2);
   --color-chart-1: var(--chart-1);
-  --color-chart-6: var(--chart-6);
-  --color-chart-7: var(--chart-7);
-  --color-chart-8: var(--chart-8);
-  --color-chart-9: var(--chart-9);
-  --color-chart-10: var(--chart-10);
   --color-ring: var(--ring);
   --color-input: var(--input);
   --color-border: var(--border);
@@ -42,30 +35,30 @@
   --color-destructive-surface: var(--destructive-surface);
   --color-destructive-chip: var(--destructive-chip);
   --color-destructive-border: var(--destructive-border);
+  --color-destructive-strong: var(--destructive-strong);
   --color-success: var(--success);
   --color-success-solid: var(--success-solid);
   --color-success-surface: var(--success-surface);
   --color-success-chip: var(--success-chip);
   --color-success-border: var(--success-border);
+  --color-success-strong: var(--success-strong);
   --color-warning: var(--warning);
   --color-warning-solid: var(--warning-solid);
   --color-warning-surface: var(--warning-surface);
   --color-warning-chip: var(--warning-chip);
   --color-warning-border: var(--warning-border);
+  --color-warning-strong: var(--warning-strong);
   --color-info: var(--info);
   --color-info-solid: var(--info-solid);
   --color-info-surface: var(--info-surface);
   --color-info-chip: var(--info-chip);
   --color-info-border: var(--info-border);
+  --color-info-strong: var(--info-strong);
   --color-tertiary: var(--tertiary);
   --color-tertiary-solid: var(--tertiary-solid);
   --color-tertiary-surface: var(--tertiary-surface);
   --color-tertiary-chip: var(--tertiary-chip);
   --color-tertiary-border: var(--tertiary-border);
-  --color-destructive-strong: var(--destructive-strong);
-  --color-success-strong: var(--success-strong);
-  --color-warning-strong: var(--warning-strong);
-  --color-info-strong: var(--info-strong);
   --color-tertiary-strong: var(--tertiary-strong);
   --color-caution: var(--caution);
   --color-caution-solid: var(--caution-solid);
@@ -85,7 +78,6 @@
   --color-primary-active: var(--primary-active);
   --color-brand-tint: var(--brand-tint);
   --color-brand-accent: var(--brand-accent);
-  /* The red margin rule of a register sheet. Structural, never decorative. */
   --color-margin: var(--margin);
   --color-navy: var(--navy);
   --color-navy-foreground: var(--navy-foreground);
@@ -98,286 +90,224 @@
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
-  /* Interaction — the state a control is in when you touch it. Not a data
-     status: see the four-ink table in DESIGN.md §1. */
   --color-interactive: var(--interactive);
   --color-interactive-fill: var(--interactive-fill);
   --color-interactive-border: var(--interactive-border);
   --color-interactive-surface: var(--interactive-surface);
-  /* DESIGN.md's `rounded` scale, verbatim: sm 4 · DEFAULT 8 · md 12 · lg 16 ·
-     xl 24. Buttons and inputs ride `rounded-lg`, cards ride `rounded-xl`. */
-  --radius-sm: 0.25rem;
-  --radius-md: 0.75rem;
-  --radius-lg: 1rem;
-  --radius-xl: 1.5rem;
-  /* The house style's two working radii: fields and buttons ride `rounded-2xl`,
-     panels and asides ride `rounded-3xl`. Both alias the DESIGN.md steps above. */
-  --radius-2xl: 1rem;
-  --radius-3xl: 1.5rem;
 
-  /* DESIGN.md's three elevation levels. The extra Tailwind steps alias onto
-     them, so no element ever stacks two levels onto one surface. */
-  --shadow-2xs: 0 1px 2px rgba(0, 0, 0, 0.06);
-  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.06);
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.06);
-  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
-  --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.12);
-  --shadow-xl: 0 8px 32px rgba(0, 0, 0, 0.12);
-  --shadow-2xl: 0 8px 32px rgba(0, 0, 0, 0.12);
+  --radius-sm: 0.25rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.625rem;
+  --radius-xl: 0.75rem;
+  --radius-2xl: 0.5rem;
+  --radius-3xl: 0.75rem;
+
+  --shadow-2xs: 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 1px 3px rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.08);
+  --shadow-xl: 0 12px 32px rgba(0, 0, 0, 0.1);
+  --shadow-2xl: 0 16px 40px rgba(0, 0, 0, 0.12);
 }
 
-/*
- * Design system — single source of truth. See DESIGN.md (the Stripe track).
- *
- * A white canvas carrying one purple accent on every call to action, Deep Navy
- * for text, and the status families untouched. Two roles:
- *   purple (--primary / --ring / --interactive) = an action, or the control you
- *                                                 are touching
- *   status (--success-*, --warning-*, --destructive-*, --info-*, --tertiary-*)
- *                                               = a fact about the record
- *
- * Values are DESIGN.md's where they clear WCAG AA; where DESIGN.md's own tone
- * does not (its #15be53 carries only 2.5:1, its #e5edf5 hairline only 1.18:1 on
- * white) the same hue is taken one step deeper and DESIGN.md's exact tone keeps
- * the non-text role. Each deviation is commented.
- *
- * Tokens are written as hex rather than oklch because `scripts/color-audit.mjs`
- * reads only hex — an oklch token is collected and then silently skipped, so it
- * is effectively unaudited. Light mode is now fully enforced.
- *
- * Contrast — verified by `bun scripts/color-audit.mjs`, which parses this file.
- * Light (WCAG AA, on the white canvas): ink 15.5 · muted 7.8 · purple 6.2 ·
- * ring 6.2 · every `-strong` on its `-chip` >= 4.5 · every hairline >= 1.2:1.
- */
+/* shadcn neutral — the palette from the NDT mockups. */
 :root {
   --radius: 0.625rem;
 
-  /* Stripe track — DESIGN.md §2/§4: canvas, ink, and the one accent. */
   --background: #ffffff;
-  --foreground: #0a2540;
+  --foreground: #0a0a0a;
   --card: #ffffff;
-  --card-foreground: #0a2540;
+  --card-foreground: #0a0a0a;
   --popover: #ffffff;
-  --popover-foreground: #0a2540;
-  --primary: #533afd;
-  --primary-foreground: #ffffff;
-  --primary-hover: #4328d9;
-  --primary-active: #3620b0;
-  --secondary: #f1f5f9;
-  --secondary-foreground: #0a2540;
-  --muted: #f1f5f9;
-  --muted-foreground: #425466;
-  --accent: #f1f5f9;
-  --accent-foreground: #0a2540;
-  /* DESIGN.md's #e5edf5 hairline is only 1.18:1 on white and 1.12:1 on the
-     panel tint — under the house 1.2:1 floor. Same hue, one step deeper. */
-  --border: #d4dcea;
-  --input: #d4dcea;
-  --ring: #533afd;
+  --popover-foreground: #0a0a0a;
+  --primary: #171717;
+  --primary-foreground: #fafafa;
+  --primary-hover: #262626;
+  --primary-active: #0a0a0a;
+  --secondary: #f5f5f5;
+  --secondary-foreground: #171717;
+  --muted: #f5f5f5;
+  --muted-foreground: #737373;
+  --accent: #f5f5f5;
+  --accent-foreground: #171717;
+  --border: #e5e5e5;
+  --input: #e5e5e5;
+  --ring: #a1a1a1;
 
-  --brand-tint: #f1f5f9;
-  --brand-accent: #533afd;
-  --margin: oklch(0.577 0.245 27.325);
+  --brand-tint: #f5f5f5;
+  --brand-accent: #171717;
+  --margin: #e7000b;
 
-  /* Interaction (link / checkbox / fokus) */
-  --interactive: #533afd;
-  --interactive-fill: #533afd;
-  --interactive-border: #dcd5fe;
-  --interactive-surface: #f4f1ff;
+  --interactive: #171717;
+  --interactive-fill: #171717;
+  --interactive-border: #d4d4d4;
+  --interactive-surface: #f5f5f5;
 
-  /* Inverse surfaces */
-  --navy: #0a2540;
-  --navy-foreground: #ffffff;
-  --navy-muted: #94a3b8;
-  --navy-border: oklch(1 0 0 / 10%);
-  --navy-accent: #b4a7fe;
-  --navy-info: #67e8f9;
-  --navy-success: #6ee7b7;
+  --navy: #0a0a0a;
+  --navy-foreground: #fafafa;
+  --navy-muted: #a1a1a1;
+  --navy-border: rgba(255, 255, 255, 0.1);
+  --navy-accent: #e5e5e5;
+  --navy-info: #93c5fd;
+  --navy-success: #86efac;
 
-  /* Status — DESIGN.md names only Success Green, and #15be53 is 2.5:1 on white
-     and 2.5:1 under a white label, so it cannot fill either role. Every family
-     keeps the deeper tone the audit already cleared. */
-  --destructive: oklch(0.577 0.245 27.325);
-  --destructive-solid: #dc2626;
+  --destructive: #e7000b;
+  --destructive-solid: #e7000b;
   --destructive-surface: #fef2f2;
   --destructive-chip: #fee2e2;
-  --destructive-border: #fecaca;
-  --destructive-strong: #7f1d1d;
+  --destructive-border: #ffc9c9;
+  --destructive-strong: #c10007;
 
-  --success: #047857;
-  --success-solid: #047857;
-  --success-surface: #ecfdf5;
-  --success-chip: #d1fae5;
-  --success-border: #a7f3d0;
-  --success-strong: #065f46;
+  --success: #007a36;
+  --success-solid: #00a63e;
+  --success-surface: #f0fdf4;
+  --success-chip: #dcfce7;
+  --success-border: #b9f8cf;
+  --success-strong: #007a36;
 
-  --warning: #b45309;
-  --warning-solid: #b45309;
-  --warning-surface: #fffbeb;
-  --warning-chip: #fef3c7;
-  --warning-border: #fde68a;
-  --warning-strong: #78350f;
+  --warning: #8a5a00;
+  --warning-solid: #f0b100;
+  --warning-surface: #fefce8;
+  --warning-chip: #fef9c3;
+  --warning-border: #fef08a;
+  --warning-strong: #713f12;
 
-  --caution: #c2410c;
-  --caution-solid: #c2410c;
+  --caution: #9a3412;
+  --caution-solid: #ea580c;
   --caution-surface: #fff7ed;
   --caution-chip: #ffedd5;
   --caution-border: #fed7aa;
   --caution-strong: #7c2d12;
 
   --info: #1d4ed8;
-  --info-solid: #1d4ed8;
+  --info-solid: #2b7fff;
   --info-surface: #eff6ff;
   --info-chip: #dbeafe;
-  --info-border: #bfdbfe;
-  --info-strong: #1e3a8a;
+  --info-border: #bedbff;
+  --info-strong: #1e40af;
 
-  /* --tertiary carries the `sakit` attendance chip. As a violet it would now
-     read as a second primary, so it moves to the neutral slate family. */
-  --tertiary: #3c4f69;
-  --tertiary-solid: #3c4f69;
-  --tertiary-surface: #f1f5f9;
-  --tertiary-chip: #e2e8f0;
-  --tertiary-border: #cbd5e1;
-  --tertiary-strong: #1e293b;
+  --tertiary: #525252;
+  --tertiary-solid: #525252;
+  --tertiary-surface: #f5f5f5;
+  --tertiary-chip: #e5e5e5;
+  --tertiary-border: #d4d4d4;
+  --tertiary-strong: #262626;
 
-  /* Charts (shadcn default, 6–10 tambahan) */
-  --chart-1: oklch(0.646 0.222 41.116);
-  --chart-2: oklch(0.6 0.118 184.704);
-  --chart-3: oklch(0.398 0.07 227.392);
-  --chart-4: oklch(0.828 0.189 84.429);
-  --chart-5: oklch(0.769 0.188 70.08);
-  --chart-6: #2563eb;
-  --chart-7: #16a34a;
-  /* was #9333ea — a purple twin of --primary. */
-  --chart-8: #0d9488;
-  --chart-9: #db2777;
-  --chart-10: #64748b;
+  --chart-1: #f54a00;
+  --chart-2: #737373;
+  --chart-3: #171717;
+  --chart-4: #a3a3a3;
+  --chart-5: #d4d4d4;
 
-  /* Sidebar */
-  --sidebar: #f8fafd;
-  --sidebar-foreground: #0a2540;
-  --sidebar-primary: #533afd;
-  --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #f1eeff;
-  --sidebar-accent-foreground: #0a2540;
-  --sidebar-active: #533afd;
-  --sidebar-active-foreground: #ffffff;
-  --sidebar-border: #d4dcea;
-  --sidebar-ring: #533afd;
+  --sidebar: #fafafa;
+  --sidebar-foreground: #0a0a0a;
+  --sidebar-primary: #171717;
+  --sidebar-primary-foreground: #fafafa;
+  --sidebar-accent: #f5f5f5;
+  --sidebar-accent-foreground: #0a0a0a;
+  --sidebar-active: #171717;
+  --sidebar-active-foreground: #fafafa;
+  --sidebar-border: #e5e5e5;
+  --sidebar-ring: #a1a1a1;
 }
 
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  /* The purple fill survives dark mode; only the label flips light. One token
-     serves both `bg-primary` and `text-primary`, and their contrast needs are
-     opposite — so `text-primary` on the dark canvas is the single accepted
-     sub-AA pairing. Flipping `--primary` light, as shadcn's default does, would
-     put a light label on a light fill. */
-  --primary: #533afd;
-  --primary-foreground: #fafafa;
-  --primary-hover: #4328d9;
-  --primary-active: #3620b0;
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  /* #533afd is only 3.2:1 on the dark canvas, so the ring brightens. */
-  --ring: #b4a7fe;
+  --background: #0a0a0a;
+  --foreground: #fafafa;
+  --card: #171717;
+  --card-foreground: #fafafa;
+  --popover: #171717;
+  --popover-foreground: #fafafa;
+  --primary: #fafafa;
+  --primary-foreground: #171717;
+  --primary-hover: #e5e5e5;
+  --primary-active: #d4d4d4;
+  --secondary: #262626;
+  --secondary-foreground: #fafafa;
+  --muted: #262626;
+  --muted-foreground: #a1a1a1;
+  --accent: #262626;
+  --accent-foreground: #fafafa;
+  --border: #262626;
+  --input: #333333;
+  --ring: #737373;
 
-  --brand-tint: oklch(0.269 0 0);
-  --brand-accent: #b4a7fe;
-  --margin: oklch(0.704 0.191 22.216);
+  --brand-tint: #262626;
+  --brand-accent: #fafafa;
+  --margin: #ff6467;
 
-  /* A link must be legible on the canvas, where #533afd is only 3.2:1. */
-  --interactive: #b4a7fe;
-  --interactive-fill: #b4a7fe;
-  --interactive-border: #4c3fa8;
-  --interactive-surface: #1b1145;
+  --interactive: #fafafa;
+  --interactive-fill: #fafafa;
+  --interactive-border: #333333;
+  --interactive-surface: #262626;
 
-  --navy: oklch(0.1 0 0);
-  --navy-foreground: oklch(0.985 0 0);
-  --navy-muted: oklch(0.708 0 0);
-  --navy-border: oklch(1 0 0 / 10%);
-  --navy-accent: #b4a7fe;
-  --navy-info: #67e8f9;
-  --navy-success: #6ee7b7;
+  --navy: #0a0a0a;
+  --navy-foreground: #fafafa;
+  --navy-muted: #a1a1a1;
+  --navy-border: rgba(255, 255, 255, 0.1);
+  --navy-accent: #e5e5e5;
+  --navy-info: #93c5fd;
+  --navy-success: #86efac;
 
-  --destructive: oklch(0.704 0.191 22.216);
-  --destructive-solid: #b91c1c;
+  --destructive: #ff6467;
+  --destructive-solid: #e7000b;
   --destructive-surface: #2a1215;
   --destructive-chip: #450a0a;
   --destructive-border: #7f1d1d;
   --destructive-strong: #fecaca;
 
-  --success: #6ee7b7;
-  --success-solid: #047857;
+  --success: #86efac;
+  --success-solid: #00a63e;
   --success-surface: #052e22;
   --success-chip: #064e3b;
   --success-border: #065f46;
-  --success-strong: #a7f3d0;
+  --success-strong: #bbf7d0;
 
-  --warning: #fcd34d;
-  --warning-solid: #b45309;
+  --warning: #fde68a;
+  --warning-solid: #f0b100;
   --warning-surface: #2b1d05;
   --warning-chip: #451a03;
   --warning-border: #78350f;
-  --warning-strong: #fde68a;
+  --warning-strong: #fef3c7;
 
   --caution: #fdba74;
-  --caution-solid: #c2410c;
+  --caution-solid: #ea580c;
   --caution-surface: #2a1305;
   --caution-chip: #431407;
   --caution-border: #7c2d12;
   --caution-strong: #fed7aa;
 
   --info: #93c5fd;
-  --info-solid: #1d4ed8;
+  --info-solid: #2b7fff;
   --info-surface: #0f1d3d;
   --info-chip: #172554;
   --info-border: #1e40af;
   --info-strong: #bfdbfe;
 
-  /* Mirror of the light deviation: the `sakit` chip is neutral slate, not the
-     violet that would read as a second primary. */
-  --tertiary: #94a3b8;
-  --tertiary-solid: #475569;
-  --tertiary-surface: #1e293b;
-  --tertiary-chip: #334155;
-  --tertiary-border: #475569;
-  --tertiary-strong: #e2e8f0;
+  --tertiary: #a3a3a3;
+  --tertiary-solid: #525252;
+  --tertiary-surface: #262626;
+  --tertiary-chip: #333333;
+  --tertiary-border: #404040;
+  --tertiary-strong: #e5e5e5;
 
-  --chart-1: oklch(0.488 0.243 264.376);
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.645 0.246 16.439);
-  --chart-6: #60a5fa;
-  --chart-7: #4ade80;
-  /* was #c084fc — a purple twin of --primary. */
-  --chart-8: #2dd4bf;
-  --chart-9: #f472b6;
-  --chart-10: #94a3b8;
+  --chart-1: #ff8904;
+  --chart-2: #a3a3a3;
+  --chart-3: #fafafa;
+  --chart-4: #737373;
+  --chart-5: #404040;
 
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: #533afd;
-  --sidebar-primary-foreground: #fafafa;
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-active: #533afd;
-  --sidebar-active-foreground: #fafafa;
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: #b4a7fe;
+  --sidebar: #171717;
+  --sidebar-foreground: #fafafa;
+  --sidebar-primary: #fafafa;
+  --sidebar-primary-foreground: #171717;
+  --sidebar-accent: #262626;
+  --sidebar-accent-foreground: #fafafa;
+  --sidebar-active: #fafafa;
+  --sidebar-active-foreground: #171717;
+  --sidebar-border: #262626;
+  --sidebar-ring: #737373;
 }
 
 @layer base {
@@ -387,115 +317,10 @@
   body {
     @apply bg-background text-foreground antialiased;
   }
-  /* Numeric columns line up wherever data is tabular. */
   th,
   td,
   [data-slot="table-cell"],
   [data-slot="table-head"] {
     font-variant-numeric: tabular-nums;
-  }
-  /* Column headers: the body family, one weight up. */
-  th {
-    @apply font-semibold;
-  }
-}
-
-/*
- * The house style's one orchestrated moment, from the reference sign-in: the
- * screen assembles itself. Each element arrives from 30px below, out of an 8px
- * blur, over 800ms — stagger them in 100ms steps with `animate-delay-*`.
- *
- * Entry screens and the landing hero only. A dashboard that re-animates on
- * every navigation taxes the people who use it forty times a day.
- */
-@utility animate-element {
-  animation: cascade-in 800ms cubic-bezier(0.22, 1, 0.36, 1) both;
-}
-
-@utility animate-aside {
-  animation: cascade-right 800ms cubic-bezier(0.22, 1, 0.36, 1) both;
-}
-
-@utility animate-card {
-  animation: cascade-card 800ms cubic-bezier(0.22, 1, 0.36, 1) both;
-}
-
-/* `animate-delay-300` → 300ms. Any step works; the reference uses 100…1400. */
-@utility animate-delay-* {
-  animation-delay: calc(--value(integer) * 1ms);
-}
-
-/*
- * The hero's gradient field. Two blurred washes drifting across a long cycle —
- * the only perpetual motion on the landing page, and it sits on a fixed,
- * pointer-events-none layer so it never repaints a scrolling container.
- */
-@utility animate-mesh {
-  animation: mesh-drift 26s ease-in-out infinite alternate;
-}
-
-@utility animate-mesh-slow {
-  animation: mesh-drift 34s ease-in-out infinite alternate-reverse;
-}
-
-@keyframes mesh-drift {
-  from {
-    transform: translate3d(-4%, -3%, 0) scale(1.04);
-  }
-  to {
-    transform: translate3d(4%, 4%, 0) scale(1.16);
-  }
-}
-
-@keyframes cascade-in {
-  from {
-    opacity: 0;
-    filter: blur(8px);
-    transform: translateY(30px);
-  }
-  to {
-    opacity: 1;
-    filter: blur(0);
-    transform: translateY(0);
-  }
-}
-
-@keyframes cascade-right {
-  from {
-    opacity: 0;
-    filter: blur(8px);
-    transform: translateX(-50px);
-  }
-  to {
-    opacity: 1;
-    filter: blur(0);
-    transform: translateX(0);
-  }
-}
-
-@keyframes cascade-card {
-  from {
-    opacity: 0;
-    filter: blur(6px);
-    transform: translateY(40px) scale(0.95);
-  }
-  to {
-    opacity: 1;
-    filter: blur(0);
-    transform: translateY(0) scale(1);
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    animation-duration: 0.01ms !important;
-    /* The cascade is staggered; a surviving delay would hold elements at their
-       invisible `from` state before snapping them in. */
-    animation-delay: 0ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-    scroll-behavior: auto !important;
   }
 }

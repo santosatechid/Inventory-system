@@ -38,42 +38,57 @@ export type Account = Prisma.AccountModel
  */
 export type Verification = Prisma.VerificationModel
 /**
- * Model UserData
+ * Model Supplier
  * 
  */
-export type UserData = Prisma.UserDataModel
+export type Supplier = Prisma.SupplierModel
 /**
- * Model Role
+ * Model Item
  * 
  */
-export type Role = Prisma.RoleModel
+export type Item = Prisma.ItemModel
 /**
- * Model Branch
+ * Model Incoming
  * 
  */
-export type Branch = Prisma.BranchModel
+export type Incoming = Prisma.IncomingModel
 /**
- * Model Notification
+ * Model IncomingItem
  * 
  */
-export type Notification = Prisma.NotificationModel
+export type IncomingItem = Prisma.IncomingItemModel
 /**
- * Model Announcement
+ * Model Request
  * 
  */
-export type Announcement = Prisma.AnnouncementModel
+export type Request = Prisma.RequestModel
 /**
- * Model Plan
+ * Model RequestItem
  * 
  */
-export type Plan = Prisma.PlanModel
+export type RequestItem = Prisma.RequestItemModel
 /**
- * Model Membership
+ * Model DeliveryNote
  * 
  */
-export type Membership = Prisma.MembershipModel
+export type DeliveryNote = Prisma.DeliveryNoteModel
 /**
- * Model Client
+ * Model DeliveryNoteItem
  * 
  */
-export type Client = Prisma.ClientModel
+export type DeliveryNoteItem = Prisma.DeliveryNoteItemModel
+/**
+ * Model Turnover
+ * 
+ */
+export type Turnover = Prisma.TurnoverModel
+/**
+ * Model TurnoverItem
+ * 
+ */
+export type TurnoverItem = Prisma.TurnoverItemModel
+/**
+ * Model AuditLog
+ * 
+ */
+export type AuditLog = Prisma.AuditLogModel

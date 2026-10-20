@@ -9,26 +9,34 @@ datasource db {
   provider = "postgresql"
 }
 
+// ---------------------------------------------------------------------------
+// Auth (better-auth core + admin plugin)
+// ---------------------------------------------------------------------------
+
 model User {
-  id            String    @id @unique
+  id            String    @id
   name          String
   email         String    @unique
-  emailVerified Boolean
+  emailVerified Boolean   @default(false)
   image         String?
+  role          String    @default("LEADER")
+  banned        Boolean?  @default(false)
+  banReason     String?
+  banExpires    DateTime?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
-  banExpires    DateTime?
-  banReason     String?
-  banned        Boolean?  @default(false)
-  role          String?   @default("user")
-  clientId      String?
-  accounts      Account[]
-  sessions      Session[]
-  userData      UserData?
-  membership    Membership?
-  client        Client?     @relation(fields: [clientId], references: [id], onDelete: SetNull)
 
-  @@index([clientId])
+  accounts          Account[]
+  sessions          Session[]
+  incoming          Incoming[]    @relation("IncomingCreator")
+  requests          Request[]     @relation("RequestLeader")
+  adminRequests     Request[]     @relation("RequestAdmin")
+  directorRequests  Request[]     @relation("RequestDirector")
+  deliveryNotes     DeliveryNote[] @relation("DeliveryCreator")
+  turnovers         Turnover[]    @relation("TurnoverSubmitter")
+  verifiedTurnovers Turnover[]    @relation("TurnoverVerifier")
+  auditLogs         AuditLog[]
+
   @@map("user")
 }
 
@@ -81,181 +89,217 @@ model Verification {
   @@map("verification")
 }
 
-model UserData {
-  id             String         @id @unique @default(cuid())
-  userId         String?        @unique
-  academicYearId String?
-  address        String?
-  avatarUrl      String?
-  birthDate      DateTime?
-  birthPlace     String?
-  classId        String?
-  employeeId     String?
-  endDate        DateTime?
-  enrollmentDate DateTime?
-  gender         String?
-  graduationDate DateTime?
-  branchId       String?
-  nik            String?
-  nisn           String?
-  parentPhone    String?
-  position       String?
-  relation       String?
-  roleId         String?
-  startDate      DateTime?
-  status         String?        @default("active")
-  studentIds     String[]
-  email          String?
-  name           String
-  isActive       Boolean        @default(true)
-  clientId       String?
-  tahfidzGroupId String?
-  createdAt      DateTime?      @default(now())
-  updatedAt      DateTime?      @updatedAt
-  Announcements  Announcement[]
-  notifications  Notification[]
-  branch         Branch?        @relation("UserBranch", fields: [branchId], references: [id])
-  role           Role?          @relation(fields: [roleId], references: [id])
-  user           User?          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  client         Client?        @relation(fields: [clientId], references: [id], onDelete: SetNull)
+// ---------------------------------------------------------------------------
+// Inventory
+// ---------------------------------------------------------------------------
 
-  @@index([clientId])
-  @@index([academicYearId])
-  @@index([classId])
-  @@index([branchId])
-  @@index([roleId])
-  @@index([tahfidzGroupId])
+model Supplier {
+  id        String   @id @default(cuid())
+  name      String
+  contact   String?
+  phone     String?
+  email     String?
+  address   String?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  items    Item[]
+  incoming Incoming[]
+
+  @@map("supplier")
+}
+
+model Item {
+  id               String   @id @default(cuid())
+  code             String   @unique
+  name             String
+  category         String
+  brand            String?
+  size             String?
+  unit             String
+  stockGudang      Int      @default(0)
+  stockOperasional Int      @default(0)
+  minStock         Int      @default(0)
+  supplierId       String?
+  isActive         Boolean  @default(true)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  supplier       Supplier?        @relation(fields: [supplierId], references: [id], onDelete: SetNull)
+  incomingItems  IncomingItem[]
+  requestItems   RequestItem[]
+  deliveryItems  DeliveryNoteItem[]
+  turnoverItems  TurnoverItem[]
+
+  @@index([supplierId])
+  @@index([category])
+  @@map("item")
+}
+
+model Incoming {
+  id           String   @id @default(cuid())
+  number       String   @unique
+  receivedAt   DateTime @default(now())
+  supplierId   String
+  documentNo   String?
+  note         String?
+  createdById  String
+  createdAt    DateTime @default(now())
+
+  supplier  Supplier       @relation(fields: [supplierId], references: [id])
+  createdBy User           @relation("IncomingCreator", fields: [createdById], references: [id])
+  items     IncomingItem[]
+
+  @@index([supplierId])
+  @@index([receivedAt])
+  @@map("incoming")
+}
+
+model IncomingItem {
+  id         String @id @default(cuid())
+  incomingId String
+  itemId     String
+  qty        Int
+
+  incoming Incoming @relation(fields: [incomingId], references: [id], onDelete: Cascade)
+  item     Item     @relation(fields: [itemId], references: [id])
+
+  @@index([incomingId])
+  @@index([itemId])
+  @@map("incoming_item")
+}
+
+model Request {
+  id              String   @id @default(cuid())
+  number          String   @unique
+  jobNo           String
+  site            String
+  customer        String?
+  neededAt        DateTime
+  estimatedDoneAt DateTime?
+  note            String?
+  status          String   @default("PENDING_ADMIN")
+  leaderId        String
+  adminId         String?
+  directorId      String?
+  adminNote       String?
+  directorNote    String?
+  decidedAt       DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  leader     User          @relation("RequestLeader", fields: [leaderId], references: [id])
+  admin      User?         @relation("RequestAdmin", fields: [adminId], references: [id])
+  director   User?         @relation("RequestDirector", fields: [directorId], references: [id])
+  items      RequestItem[]
+  delivery   DeliveryNote?
+
+  @@index([leaderId])
   @@index([status])
-  @@index([email])
-  @@map("user_data")
+  @@map("request")
 }
 
-model Role {
-  id           String     @id @default(cuid())
-  name         String
-  description  String
-  clientId     String?
-  permissions  String[]
-  isActive     Boolean    @default(true)
-  userData     UserData[]
-  client       Client?    @relation(fields: [clientId], references: [id], onDelete: Cascade)
+model RequestItem {
+  id        String @id @default(cuid())
+  requestId String
+  itemId    String
+  qty       Int
 
-  @@unique([clientId, name])
-  @@index([clientId])
-  @@map("roles")
+  request Request @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  item    Item    @relation(fields: [itemId], references: [id])
+
+  @@index([requestId])
+  @@index([itemId])
+  @@map("request_item")
 }
 
-model Branch {
-  id           String     @id @default(cuid())
-  code         String
-  name         String
-  description  String?
-  isActive     Boolean    @default(true)
-  address      String?
-  phone        String?
-  adminName    String?
-  signatureUrl String?
-  clientId     String?
-  createdAt    DateTime   @default(now())
-  updatedAt    DateTime   @updatedAt
-  users        UserData[] @relation("UserBranch")
-  client       Client?    @relation(fields: [clientId], references: [id], onDelete: Cascade)
+model DeliveryNote {
+  id          String    @id @default(cuid())
+  number      String    @unique
+  requestId   String    @unique
+  status      String    @default("ISSUED")
+  vehicle     String?
+  issuedAt    DateTime  @default(now())
+  confirmedAt DateTime?
+  createdById String
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 
-  @@unique([clientId, code])
-  @@index([clientId])
-  @@map("branches")
-}
+  request   Request            @relation(fields: [requestId], references: [id])
+  createdBy User               @relation("DeliveryCreator", fields: [createdById], references: [id])
+  items     DeliveryNoteItem[]
+  turnover  Turnover?
 
-model Notification {
-  id        String    @id @default(cuid())
-  userId    String
-  title     String
-  message   String
-  type      String
-  category  String?
-  isRead    Boolean   @default(false)
-  link      String?
-  data      Json?
-  createdAt DateTime  @default(now())
-  readAt    DateTime?
-  user      UserData  @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([userId])
-  @@index([isRead])
-  @@map("notifications")
-}
-
-model Announcement {
-  id           String    @id @default(cuid())
-  title        String
-  content      String
-  imageUrl     String?
-  linkUrl      String?
-  startDate    DateTime?
-  endDate      DateTime?
-  userId       String?
-  clientId     String
-  isActive     Boolean   @default(true)
-  isPublished  Boolean   @default(false)
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
-  user         UserData? @relation(fields: [userId], references: [id], onDelete: Cascade)
-  client       Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
-
-  @@index([clientId])
-  @@map("announcements")
-}
-
-model Plan {
-  id          String       @id @default(cuid())
-  slug        String       @unique
-  name        String
-  description String?
-  price       Int          @default(0)
-  interval    String       @default("month")
-  features    String[]
-  isPopular   Boolean      @default(false)
-  isActive    Boolean      @default(true)
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
-  memberships Membership[]
-
-  @@map("plans")
-}
-
-model Membership {
-  id        String    @id @default(cuid())
-  userId    String    @unique
-  planId    String
-  status    String    @default("active")
-  startDate DateTime  @default(now())
-  endDate   DateTime?
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  plan      Plan      @relation(fields: [planId], references: [id], onDelete: Restrict)
-
-  @@index([planId])
   @@index([status])
-  @@map("memberships")
+  @@map("delivery_note")
 }
 
-model Client {
-  id            String         @id @default(cuid())
-  name          String
-  slug          String         @unique
-  email         String?
-  phone         String?
-  address       String?
-  logoUrl       String?
-  isActive      Boolean        @default(true)
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
-  users         User[]
-  userData      UserData[]
-  roles         Role[]
-  branches      Branch[]
-  announcements Announcement[]
+model DeliveryNoteItem {
+  id             String @id @default(cuid())
+  deliveryNoteId String
+  itemId         String
+  qty            Int
+  boxes          String?
 
-  @@map("clients")
+  deliveryNote DeliveryNote @relation(fields: [deliveryNoteId], references: [id], onDelete: Cascade)
+  item         Item         @relation(fields: [itemId], references: [id])
+
+  @@index([deliveryNoteId])
+  @@index([itemId])
+  @@map("delivery_note_item")
+}
+
+model Turnover {
+  id             String    @id @default(cuid())
+  deliveryNoteId String    @unique
+  status         String    @default("DRAFT")
+  note           String?
+  submittedById  String
+  submittedAt    DateTime?
+  verifiedById   String?
+  verifiedAt     DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  deliveryNote DeliveryNote   @relation(fields: [deliveryNoteId], references: [id])
+  submittedBy  User           @relation("TurnoverSubmitter", fields: [submittedById], references: [id])
+  verifiedBy   User?          @relation("TurnoverVerifier", fields: [verifiedById], references: [id])
+  items        TurnoverItem[]
+
+  @@index([status])
+  @@map("turnover")
+}
+
+model TurnoverItem {
+  id         String @id @default(cuid())
+  turnoverId String
+  itemId     String
+  brought    Int
+  used       Int    @default(0)
+  returned   Int    @default(0)
+  damaged    Int    @default(0)
+
+  turnover Turnover @relation(fields: [turnoverId], references: [id], onDelete: Cascade)
+  item     Item     @relation(fields: [itemId], references: [id])
+
+  @@index([turnoverId])
+  @@index([itemId])
+  @@map("turnover_item")
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  actorId   String?
+  action    String
+  entity    String
+  entityId  String
+  meta      String?
+  createdAt DateTime @default(now())
+
+  actor User? @relation(fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([actorId])
+  @@index([entity])
+  @@map("audit_log")
 }

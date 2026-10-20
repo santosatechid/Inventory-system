@@ -1,9 +1,9 @@
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
-import DashboardShell from "@/components/layout/dashboardShell";
+import { AppShell } from "@/components/shell/app-shell";
 import { auth } from "@/services/auth/auth";
-import { prisma } from "@/services/prisma";
+import type { Role } from "@/types/inventory";
 
 export const dynamic = "force-dynamic";
 
@@ -13,21 +13,20 @@ export default async function DashboardLayout({
   children: React.ReactNode;
 }) {
   const session = await auth.api.getSession({ headers: await headers() });
-
   if (!session?.user) redirect("/auth/signIn");
 
-  const [user, userData] = await Promise.all([
-    prisma.user.findUnique({
-      where: { id: session.user.id },
-      select: { clientId: true },
-    }),
-    prisma.userData.findUnique({
-      where: { userId: session.user.id },
-      select: { clientId: true },
-    }),
-  ]);
+  const user = session.user as typeof session.user & { role?: string };
 
-  if (!user?.clientId && !userData?.clientId) redirect("/onboarding");
-
-  return <DashboardShell>{children}</DashboardShell>;
+  return (
+    <AppShell
+      user={{
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role: (user.role as Role) ?? "LEADER",
+      }}
+    >
+      {children}
+    </AppShell>
+  );
 }

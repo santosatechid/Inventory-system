@@ -1,57 +1,48 @@
 "use client";
 
-import { type UserDataTypes } from "@/types";
-import { apiDelete, apiGet, apiPost, apiPut } from "@/lib/http/apiClient";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
-export const useGetUsers = () => {
-  return useQuery({
-    queryKey: ["users"],
-    queryFn: async () => {
-      const res = await apiGet<UserDataTypes[]>("/api/users");
-      return res.data;
-    },
-  });
+import { CACHE_STRATEGIES } from "@/app/providers";
+import { apiGet, apiPatch, apiPost } from "@/lib/http/apiClient";
+import type { AppUser, Role } from "@/types/inventory";
+
+export type UserInput = {
+  name: string;
+  email: string;
+  password: string;
+  role: Role;
 };
+
+export type UserUpdate = {
+  id: string;
+  name?: string;
+  email?: string;
+  role?: Role;
+  banned?: boolean;
+  password?: string;
+};
+
+export const useUsers = () =>
+  useQuery({
+    queryKey: ["users"],
+    queryFn: async () => (await apiGet<AppUser[]>("/api/users")).data,
+    ...CACHE_STRATEGIES.static,
+  });
 
 export const useCreateUser = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (data: Partial<UserDataTypes>) => {
-      const res = await apiPost("/api/users", data);
-      return res.data;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["users"] });
-    },
+    mutationFn: async (data: UserInput) =>
+      (await apiPost<AppUser>("/api/users", data)).data,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["users"] }),
   });
 };
 
 export const useUpdateUser = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (data: Partial<UserDataTypes> & { id: string }) => {
-      const res = await apiPut("/api/users", data);
-      return res.data;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["users"] });
-    },
-  });
-};
-
-export const useDeleteUser = () => {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: async (id: string) => {
-      const res = await apiDelete("/api/users/", {
-        body: JSON.stringify({ id }),
-        headers: { "Content-Type": "application/json" },
-      });
-      return res.data;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["users"] });
-    },
+    mutationFn: async (data: UserUpdate) =>
+      (await apiPatch<AppUser>("/api/users", data)).data,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["users"] }),
   });
 };

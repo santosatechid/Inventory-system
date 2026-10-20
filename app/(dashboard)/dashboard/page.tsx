@@ -1,18 +1,21 @@
 "use client";
 
-import { useGetConnectionBotWa } from "@/hooks/whatsApp/useBotWa";
-import { useGetBranchs } from "@/hooks/branches/useBranches";
-import { useGetRoles } from "@/hooks/roles/useRoles";
-import { useGetUsers } from "@/hooks/users/useUsers";
-import { useGetUserByIdBetterAuth } from "@/hooks/users/useUsersByIdBetterAuth";
-import { Badge } from "@/components/ui/badge";
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+  AlertTriangle,
+  ArrowRight,
+  CheckCircle2,
+  Download,
+  Inbox,
+  Package,
+  Plus,
+  Truck,
+  Warehouse,
+} from "lucide-react";
+import Link from "next/link";
+
+import { PageHeader } from "@/components/shell/page-header";
+import { EmptyState, StatCard } from "@/components/shell/stat-card";
+import { StatusBadge } from "@/components/shell/status-badge";
 import {
   Table,
   TableBody,
@@ -21,155 +24,287 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { useSession } from "@/services/auth/authClients";
-import {
-  Building2,
-  MessageSquare,
-  Shield,
-  User,
-  Users,
-  Wifi,
-  WifiOff,
-} from "lucide-react";
-import Link from "next/link";
-
-const QUICK_LINKS = [
-  { href: "/dashboard/admin/master/users", label: "Kelola Users", icon: User },
-  { href: "/dashboard/admin/master/roles", label: "Kelola Roles", icon: Shield },
-  {
-    href: "/dashboard/admin/master/branches",
-    label: "Kelola Branches",
-    icon: Building2,
-  },
-  {
-    href: "/dashboard/admin/utility/whatsapp",
-    label: "WhatsApp Gateway",
-    icon: MessageSquare,
-  },
-] as const;
+import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/ui/button";
+import { useDashboard } from "@/hooks/inventory/useDashboard";
+import { downloadCsv } from "@/lib/csv";
+import { formatDate } from "@/lib/format";
+import { authClient } from "@/services/auth/authClients";
 
 export default function DashboardPage() {
-  const { data: session } = useSession();
-  const { data: currentUser } = useGetUserByIdBetterAuth(
-    session?.user?.id ?? "",
+  const { data, isLoading } = useDashboard();
+  const { data: session } = authClient.useSession();
+  const role = (session?.user as { role?: string } | undefined)?.role;
+  const isAdmin = role === "ADMIN";
+  const maxChart = Math.max(
+    ...(data?.chart.flatMap((row) => [row.masuk, row.keluar]) ?? [1]),
+    1,
   );
-  const { data: users = [], isLoading: usersLoading } = useGetUsers();
-  const { data: roles = [] } = useGetRoles();
-  const { data: branches = [] } = useGetBranchs();
-  const { data: connection } = useGetConnectionBotWa();
-
-  const stats = [
-    { label: "Users", value: users.length, icon: Users },
-    { label: "Roles", value: roles.length, icon: Shield },
-    { label: "Branches", value: branches.length, icon: Building2 },
-  ];
 
   return (
-    <div className="max-w-8xl space-y-6">
-      <div>
-        <h1 className="text-3xl font-semibold tracking-tight">Dashboard</h1>
-        <p className="text-muted-foreground mt-1 text-sm">
-          Selamat datang, {currentUser?.name || session?.user?.name || "User"}.
-        </p>
-      </div>
+    <div className="flex flex-col gap-5">
+      <PageHeader
+        title="Dashboard"
+        description={`Ringkasan stok dan alur barang · ${new Intl.DateTimeFormat("id-ID", { weekday: "long", day: "numeric", month: "long", year: "numeric" }).format(new Date())}`}
+        actions={
+          <>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() =>
+                data &&
+                downloadCsv("ringkasan-stok.csv", [
+                  ["Metrik", "Nilai"],
+                  ["Total item", data.itemCount],
+                  ["Stok gudang", data.stockGudang],
+                  ["Stok operasional", data.stockOperasional],
+                  ["Menunggu approval", data.pendingApprovals],
+                  ["Barang masuk bulan ini", data.incomingThisMonth],
+                  ["Barang keluar bulan ini", data.outgoingThisMonth],
+                ])
+              }
+            >
+              <Download />
+              Ekspor
+            </Button>
+            {isAdmin ? (
+              <Button asChild size="sm">
+                <Link href="/incoming">
+                  <Plus />
+                  Catat Barang Masuk
+                </Link>
+              </Button>
+            ) : null}
+          </>
+        }
+      />
 
-      <div className="grid gap-4 sm:grid-cols-3">
-        {stats.map(({ label, value, icon: Icon }) => (
-          <Card key={label}>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardDescription>{label}</CardDescription>
-              <Icon className="text-muted-foreground h-4 w-4" />
-            </CardHeader>
-            <CardContent>
-              <p className="text-3xl font-bold">
-                {label === "Users" && usersLoading ? "…" : value}
-              </p>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+      {isLoading || !data ? (
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          {Array.from({ length: 4 }).map((_, index) => (
+            <Skeleton key={index} className="h-[104px] rounded-xl" />
+          ))}
+        </div>
+      ) : (
+        <>
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            <StatCard
+              label="Total Item Consumable"
+              value={`${data.itemCount} item`}
+              icon={Package}
+            >
+              <span className="bg-muted text-muted-foreground w-fit rounded-full px-2.5 py-0.5 text-[11px]">
+                {data.lowStock.length} item perlu perhatian
+              </span>
+            </StatCard>
+            <StatCard
+              label="Stok Gudang"
+              value={`${data.stockGudang.toLocaleString("id-ID")} unit`}
+              icon={Warehouse}
+            >
+              <span className="bg-warning-surface text-warning w-fit rounded-full px-2.5 py-0.5 text-[11px]">
+                {data.lowStock.length} item menipis
+              </span>
+            </StatCard>
+            <StatCard
+              label="Barang di Operasional"
+              value={`${data.stockOperasional.toLocaleString("id-ID")} unit`}
+              icon={Truck}
+            >
+              <span className="bg-info-surface text-info w-fit rounded-full px-2.5 py-0.5 text-[11px]">
+                {data.onSite.length} surat jalan aktif
+              </span>
+            </StatCard>
+            <StatCard
+              label="Menunggu Approval"
+              value={`${data.pendingApprovals} request`}
+              icon={Inbox}
+            >
+              <span className="bg-warning-surface text-warning w-fit rounded-full px-2.5 py-0.5 text-[11px]">
+                {data.pendingDirector} perlu Direktur
+              </span>
+            </StatCard>
+          </div>
 
-      <div className="grid gap-4 lg:grid-cols-3">
-        <Card className="lg:col-span-2">
-          <CardHeader>
-            <CardTitle>User terbaru</CardTitle>
-            <CardDescription>5 data terakhir dari user_data.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Nama</TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Role</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {users.slice(0, 5).map((user) => (
-                  <TableRow key={user.id}>
-                    <TableCell className="font-medium">{user.name}</TableCell>
-                    <TableCell className="text-muted-foreground">
-                      {user.email || "—"}
-                    </TableCell>
-                    <TableCell>{user.role?.name || "—"}</TableCell>
-                  </TableRow>
+          <div className="grid grid-cols-1 gap-3 lg:grid-cols-[minmax(0,1fr)_340px]">
+            <div className="bg-card border-border flex flex-col gap-4 rounded-xl border p-4">
+              <div>
+                <p className="text-[13.5px] font-semibold">
+                  Aktivitas Stok 6 Bulan
+                </p>
+                <p className="text-muted-foreground text-[11.5px]">
+                  Barang masuk dan keluar per bulan
+                </p>
+              </div>
+              <div className="flex h-40 items-end justify-between gap-2">
+                {data.chart.map((row) => (
+                  <div
+                    key={row.month}
+                    className="flex h-full flex-1 flex-col items-center justify-end gap-2"
+                  >
+                    <div className="flex h-full w-full items-end justify-center gap-1">
+                      <div
+                        title={`Masuk ${row.masuk}`}
+                        className="bg-chart-1 w-3 rounded-t-sm"
+                        style={{
+                          height: `${Math.max((row.masuk / maxChart) * 100, 2)}%`,
+                        }}
+                      />
+                      <div
+                        title={`Keluar ${row.keluar}`}
+                        className="bg-chart-2 w-3 rounded-t-sm"
+                        style={{
+                          height: `${Math.max((row.keluar / maxChart) * 100, 2)}%`,
+                        }}
+                      />
+                    </div>
+                    <span className="text-muted-foreground text-[10.5px]">
+                      {row.month}
+                    </span>
+                  </div>
                 ))}
-                {!usersLoading && users.length === 0 && (
-                  <TableRow>
-                    <TableCell
-                      colSpan={3}
-                      className="text-muted-foreground text-center"
-                    >
-                      Belum ada data user.
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>WhatsApp</CardTitle>
-            <CardDescription>Status instance Evolution API.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <div className="flex items-center gap-2">
-              {connection?.connection === "success" ? (
-                <Wifi className="text-success h-5 w-5" />
-              ) : (
-                <WifiOff className="text-destructive h-5 w-5" />
-              )}
-              <Badge
-                variant={
-                  connection?.connection === "success"
-                    ? "default"
-                    : "destructive"
-                }
-              >
-                {connection?.connection || "unknown"}
-              </Badge>
+              </div>
+              <div className="text-muted-foreground flex items-center gap-4 text-[10.5px]">
+                <span className="flex items-center gap-1.5">
+                  <span className="bg-chart-1 size-2 rounded-sm" /> Barang masuk
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <span className="bg-chart-2 size-2 rounded-sm" /> Barang keluar
+                </span>
+              </div>
             </div>
-            <p className="text-muted-foreground text-sm">
-              {connection?.message || connection?.state || "Belum terhubung."}
-            </p>
-          </CardContent>
-        </Card>
-      </div>
 
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        {QUICK_LINKS.map(({ href, label, icon: Icon }) => (
-          <Link
-            key={href}
-            href={href}
-            className="border-border bg-card hover:bg-secondary flex items-center gap-3 rounded-xl border p-4 text-sm font-medium transition-colors"
-          >
-            <Icon className="text-primary h-4 w-4" />
-            {label}
-          </Link>
-        ))}
-      </div>
+            <div className="bg-card border-border flex flex-col gap-3 rounded-xl border p-4">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-[13.5px] font-semibold">Peringatan Stok</p>
+                  <p className="text-muted-foreground text-[11.5px]">
+                    {data.lowStock.length} item di bawah stok minimum
+                  </p>
+                </div>
+                <span className="bg-destructive-surface text-destructive-strong rounded-full px-2.5 py-0.5 text-[11px] font-medium">
+                  {data.lowStock.length} item
+                </span>
+              </div>
+
+              <div className="flex flex-col gap-2">
+                {data.lowStock.slice(0, 4).map((item) => (
+                  <div
+                    key={item.id}
+                    className="bg-muted flex items-center gap-2 rounded-md px-2.5 py-2"
+                  >
+                    <AlertTriangle
+                      className={
+                        item.stockGudang === 0
+                          ? "text-destructive size-3.5 shrink-0"
+                          : "text-warning-solid size-3.5 shrink-0"
+                      }
+                    />
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-[11px] font-medium">
+                        {item.name}
+                      </p>
+                      <p className="text-muted-foreground text-[9.5px]">
+                        {item.stockGudang} / min {item.minStock} {item.unit}
+                      </p>
+                    </div>
+                    <StatusBadge
+                      status={item.stockGudang === 0 ? "REJECTED" : "PENDING_ADMIN"}
+                      label={item.stockGudang === 0 ? "Habis" : "Menipis"}
+                    />
+                  </div>
+                ))}
+                {data.lowStock.length === 0 ? (
+                  <p className="text-muted-foreground py-4 text-center text-xs">
+                    Semua stok di atas minimum.
+                  </p>
+                ) : null}
+              </div>
+
+              {isAdmin ? (
+                <Button asChild variant="outline" size="sm" className="w-fit">
+                  <Link href="/items">
+                    Kelola di Master Item <ArrowRight />
+                  </Link>
+                </Button>
+              ) : null}
+            </div>
+          </div>
+
+          <div className="bg-card border-border flex flex-col gap-3 rounded-xl border p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-[13.5px] font-semibold">
+                  Barang Sedang Dibawa
+                </p>
+                <p className="text-muted-foreground text-[11.5px]">
+                  Sudah keluar gudang dan belum di-turnover
+                </p>
+              </div>
+              <Button asChild variant="ghost" size="sm">
+                <Link href="/delivery-notes">
+                  Lihat semua <ArrowRight />
+                </Link>
+              </Button>
+            </div>
+
+            {data.onSite.length === 0 ? (
+              <EmptyState
+                title="Belum ada barang di site"
+                description="Konfirmasi surat jalan akan menampilkan data di sini."
+              />
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Surat Jalan</TableHead>
+                    <TableHead>Leader</TableHead>
+                    <TableHead>Site</TableHead>
+                    <TableHead>Item</TableHead>
+                    <TableHead>Jumlah</TableHead>
+                    <TableHead>Status</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {data.onSite.map((note) => (
+                    <TableRow key={note.id}>
+                      <TableCell>
+                        <p className="text-xs font-medium">{note.number}</p>
+                        <p className="text-muted-foreground text-[10.5px]">
+                          {formatDate(note.confirmedAt ?? note.issuedAt)}
+                        </p>
+                      </TableCell>
+                      <TableCell className="text-xs">
+                        {note.request.leader.name}
+                      </TableCell>
+                      <TableCell className="text-xs">
+                        {note.request.site}
+                      </TableCell>
+                      <TableCell className="text-xs">
+                        {note.items
+                          .map((row) => row.item.name)
+                          .join(", ")}
+                      </TableCell>
+                      <TableCell className="text-xs">
+                        {note.items.reduce((sum, row) => sum + row.qty, 0)} unit
+                      </TableCell>
+                      <TableCell>
+                        <StatusBadge status={note.status} />
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
+          </div>
+
+          <div className="bg-muted text-muted-foreground flex items-center gap-2 rounded-xl px-4 py-3 text-[11.5px]">
+            <CheckCircle2 className="text-success size-4 shrink-0" />
+            Alur: Request Leader → cek stok Admin → persetujuan Direktur → surat
+            jalan → turnover &amp; verifikasi stok.
+          </div>
+        </>
+      )}
     </div>
   );
 }

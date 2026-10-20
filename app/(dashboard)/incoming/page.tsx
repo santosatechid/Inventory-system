@@ -1,0 +1,252 @@
+"use client";
+
+import { Building2, FileText, Inbox, Plus } from "lucide-react";
+import { useState } from "react";
+import { toast } from "sonner";
+
+import { PageHeader } from "@/components/shell/page-header";
+import { EmptyState, StatCard } from "@/components/shell/stat-card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Textarea } from "@/components/ui/textarea";
+import { useCreateIncoming, useIncoming } from "@/hooks/inventory/useIncoming";
+import { useItems, useSuppliers } from "@/hooks/inventory/useItems";
+import { formatDate, todayInput } from "@/lib/format";
+
+export default function IncomingPage() {
+  const { data: rows = [] } = useIncoming();
+  const { data: items = [] } = useItems();
+  const { data: suppliers = [] } = useSuppliers();
+  const createIncoming = useCreateIncoming();
+
+  const [receivedAt, setReceivedAt] = useState(todayInput());
+  const [supplierId, setSupplierId] = useState("");
+  const [itemId, setItemId] = useState("");
+  const [qty, setQty] = useState("1");
+  const [documentNo, setDocumentNo] = useState("");
+  const [note, setNote] = useState("");
+
+  const selectedItem = items.find((item) => item.id === itemId);
+  const now = new Date();
+  const thisMonth = rows.filter((row) => {
+    const date = new Date(row.receivedAt);
+    return (
+      date.getMonth() === now.getMonth() &&
+      date.getFullYear() === now.getFullYear()
+    );
+  });
+  const itemIn = thisMonth.reduce(
+    (sum, row) => sum + row.items.reduce((s, item) => s + item.qty, 0),
+    0,
+  );
+
+  async function submit() {
+    if (!supplierId || !itemId || Number(qty) <= 0) {
+      toast.error("Supplier, item, dan jumlah wajib diisi.");
+      return;
+    }
+    await createIncoming.mutateAsync({
+      supplierId,
+      receivedAt,
+      documentNo: documentNo || undefined,
+      note: note || undefined,
+      items: [{ itemId, qty: Number(qty) }],
+    });
+    toast.success("Barang masuk disimpan. Stok gudang bertambah.");
+    setSupplierId("");
+    setItemId("");
+    setQty("1");
+    setDocumentNo("");
+    setNote("");
+  }
+
+  return (
+    <div className="flex flex-col gap-5">
+      <PageHeader
+        title="Barang Masuk"
+        description="Catat penerimaan consumable dari supplier. Stok gudang bertambah setelah disimpan."
+        actions={
+          <Button size="sm" onClick={submit} disabled={createIncoming.isPending}>
+            <Plus />
+            {createIncoming.isPending ? "Menyimpan…" : "Catat Barang Masuk"}
+          </Button>
+        }
+      />
+
+      <div className="grid gap-3 sm:grid-cols-3">
+        <StatCard
+          label="Penerimaan Bulan Ini"
+          value={`${thisMonth.length} dokumen`}
+          icon={FileText}
+        />
+        <StatCard label="Item Masuk" value={`${itemIn} unit`} icon={Inbox} />
+        <StatCard
+          label="Supplier Aktif"
+          value={`${suppliers.filter((supplier) => supplier.isActive).length} supplier`}
+          icon={Building2}
+        />
+      </div>
+
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_360px]">
+        <div className="bg-card border-border flex flex-col gap-3 rounded-xl border p-4">
+          <div>
+            <p className="text-[13.5px] font-semibold">Riwayat Barang Masuk</p>
+            <p className="text-muted-foreground text-[11.5px]">
+              Transaksi penerimaan terbaru
+            </p>
+          </div>
+
+          {rows.length === 0 ? (
+            <EmptyState
+              title="Belum ada penerimaan"
+              description="Catat barang masuk melalui form di samping."
+            />
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Nomor</TableHead>
+                  <TableHead>Tanggal</TableHead>
+                  <TableHead>Supplier</TableHead>
+                  <TableHead>Item</TableHead>
+                  <TableHead>Jumlah</TableHead>
+                  <TableHead>Admin</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {rows.map((row) => (
+                  <TableRow key={row.id}>
+                    <TableCell>
+                      <p className="text-xs font-medium">{row.number}</p>
+                      <p className="text-muted-foreground text-[10.5px]">
+                        {row.documentNo ?? "—"}
+                      </p>
+                    </TableCell>
+                    <TableCell className="text-muted-foreground text-xs">
+                      {formatDate(row.receivedAt)}
+                    </TableCell>
+                    <TableCell className="text-muted-foreground text-xs">
+                      {row.supplier.name}
+                    </TableCell>
+                    <TableCell className="text-muted-foreground text-xs">
+                      {row.items
+                        .map((item) => `${item.item.name} (${item.qty})`)
+                        .join(", ")}
+                    </TableCell>
+                    <TableCell className="text-xs">
+                      {row.items.reduce((sum, item) => sum + item.qty, 0)} unit
+                    </TableCell>
+                    <TableCell className="text-muted-foreground text-xs">
+                      {row.createdBy.name}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </div>
+
+        <div className="bg-card border-border flex h-fit flex-col gap-3 rounded-xl border p-4">
+          <p className="text-[13.5px] font-semibold">Catat Barang Masuk</p>
+
+          <div className="grid gap-1.5">
+            <Label className="text-[11.5px]">Tanggal terima</Label>
+            <Input
+              type="date"
+              value={receivedAt}
+              onChange={(event) => setReceivedAt(event.target.value)}
+            />
+          </div>
+
+          <div className="grid gap-1.5">
+            <Label className="text-[11.5px]">Supplier</Label>
+            <Select value={supplierId} onValueChange={setSupplierId}>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Pilih supplier" />
+              </SelectTrigger>
+              <SelectContent>
+                {suppliers.map((supplier) => (
+                  <SelectItem key={supplier.id} value={supplier.id}>
+                    {supplier.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="grid gap-1.5">
+            <Label className="text-[11.5px]">Item consumable</Label>
+            <Select value={itemId} onValueChange={setItemId}>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Pilih item" />
+              </SelectTrigger>
+              <SelectContent>
+                {items.map((item) => (
+                  <SelectItem key={item.id} value={item.id}>
+                    {item.name} · {item.brand ?? item.code}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="grid gap-1.5">
+            <Label className="text-[11.5px]">Jumlah diterima</Label>
+            <Input
+              type="number"
+              min={1}
+              value={qty}
+              onChange={(event) => setQty(event.target.value)}
+            />
+            <p className="text-muted-foreground text-[10.5px]">
+              Satuan: {selectedItem?.unit ?? "—"} · stok saat ini{" "}
+              {selectedItem?.stockGudang ?? 0}
+            </p>
+          </div>
+
+          <div className="grid gap-1.5">
+            <Label className="text-[11.5px]">Nomor dokumen supplier</Label>
+            <Input
+              value={documentNo}
+              placeholder="DO/SNT/2026/1024"
+              onChange={(event) => setDocumentNo(event.target.value)}
+            />
+          </div>
+
+          <div className="grid gap-1.5">
+            <Label className="text-[11.5px]">Catatan</Label>
+            <Textarea
+              rows={2}
+              value={note}
+              onChange={(event) => setNote(event.target.value)}
+            />
+          </div>
+
+          <Button onClick={submit} disabled={createIncoming.isPending}>
+            {createIncoming.isPending ? "Menyimpan…" : "Simpan Barang Masuk"}
+          </Button>
+          <p className="text-muted-foreground text-[10.5px]">
+            Setelah disimpan, stok gudang bertambah dan transaksi tercatat di
+            riwayat.
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}

@@ -1,25 +1,20 @@
-import { PrismaClient } from "@/prisma/generated/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
 import { nextCookies } from "better-auth/next-js";
-import { admin, openAPI } from "better-auth/plugins";
+import { admin } from "better-auth/plugins";
 
-const adapter = new PrismaPg({
-  connectionString: process.env.DATABASE_URL!,
-});
+import { PrismaClient } from "@/prisma/generated/client";
 
 const prisma = new PrismaClient({
-  adapter,
+  adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL! }),
 });
 
 export const auth = betterAuth({
-  database: prismaAdapter(prisma, {
-    provider: "postgresql",
-  }),
-
+  database: prismaAdapter(prisma, { provider: "postgresql" }),
   emailAndPassword: {
     enabled: true,
+    minPasswordLength: 8,
   },
   session: {
     cookieCache: {
@@ -28,22 +23,12 @@ export const auth = betterAuth({
       strategy: "compact",
     },
   },
-  socialProviders: {
-    google: {
-      clientId: process.env.GOOGLE_CLIENT_ID!,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
-    },
-  },
   plugins: [
-    openAPI(),
     admin({
-      // Optional: configure admin settings
-      defaultRole: "user",
-      adminRole: "admin",
-      teacherRole: "teacher",
-      studentRole: "student",
-      parentRole: "parent",
+      defaultRole: "LEADER",
+      adminRoles: ["ADMIN"],
+      defaultBanReason: "Akun dinonaktifkan oleh Admin",
     }),
-    nextCookies(), // ✅ MOVED: Cookie plugin MUST be last
+    nextCookies(),
   ],
 });

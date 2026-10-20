@@ -20,22 +20,12 @@ export const viewport: Viewport = {
   themeColor: "#ffffff",
   width: "device-width",
   initialScale: 1,
-  maximumScale: 1,
 };
 
 export const metadata: Metadata = {
-  title: process.env.NEXT_PUBLIC_CLIENT_NAME || "SaaS Starter",
-  description: `Aplikasi portal utama ${process.env.NEXT_PUBLIC_CLIENT_NAME || "SaaS Starter"}`,
-  manifest: "/manifest.json",
-  icons: {
-    icon: process.env.CLIENT_FAVICON || "/favicon.ico",
-    apple: process.env.CLIENT_APPLE_ICON || "/apple-touch-icon.png",
-  },
-  appleWebApp: {
-    capable: true,
-    statusBarStyle: "default",
-    title: process.env.NEXT_PUBLIC_CLIENT_NAME || "SaaS Starter",
-  },
+  title: "NDT Inventory · PT Luindo Prima",
+  description: "Sistem inventori consumable NDT PT Luindo Prima",
+  icons: { icon: process.env.CLIENT_FAVICON || "/favicon.ico" },
 };
 
 export default function RootLayout({

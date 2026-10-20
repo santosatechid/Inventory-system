@@ -1,212 +1,141 @@
-import { handlePrismaError } from "@/services/errorHandler";
-import { prisma } from "@/services/prisma";
-import { resolveClient, clientForbidden } from "@/services/clients";
+import { hashPassword } from "better-auth/crypto";
 import { type NextRequest, NextResponse } from "next/server";
 
-function replaceUndefinedWithNull<T>(value: T): T {
-  if (Array.isArray(value)) {
-    return value.map((item) => replaceUndefinedWithNull(item)) as unknown as T;
-  }
-  if (value !== null && typeof value === "object") {
-    const result: Record<string, unknown> = {};
-    for (const [key, val] of Object.entries(value as Record<string, unknown>)) {
-      if (val === undefined) {
-        result[key] = null;
-      } else if (
-        Array.isArray(val) ||
-        (val !== null && typeof val === "object")
-      ) {
-        result[key] = replaceUndefinedWithNull(val);
-      } else {
-        result[key] = val;
-      }
-    }
-    return result as unknown as T;
-  }
-  return (value === undefined ? (null as unknown as T) : value) as T;
-}
+import { bad, guard } from "@/lib/authGuard";
+import { handlePrismaError } from "@/services/errorHandler";
+import { auth } from "@/services/auth/auth";
+import { prisma } from "@/services/prisma";
 
-type TenantRefs = {
-  userId?: string | null;
-  roleId?: string | null;
-  branchId?: string | null;
-};
+const ROLES = ["ADMIN", "DIREKTUR", "LEADER"];
 
-// Verifikasi setiap FK dari body memang milik client pemanggil.
-// Role bersama (clientId NULL) tetap diizinkan karena ikut tampil di daftar role.
-async function refsOwnedByClient(
-  data: TenantRefs,
-  clientId: string,
-): Promise<boolean> {
-  const { userId, roleId, branchId } = data;
+export async function GET() {
+  const g = await guard(["ADMIN"]);
+  if (g.error) return g.error;
 
-  const [user, role, branch] = await Promise.all([
-      userId
-        ? prisma.user.findFirst({
-            where: {
-              id: userId,
-              OR: [{ clientId }, { clientId: null }],
-            },
-            select: { id: true },
-          })
-        : true,
-      roleId
-        ? prisma.role.findFirst({
-            where: {
-              id: roleId,
-              OR: [{ clientId }, { clientId: null }],
-            },
-            select: { id: true },
-          })
-        : true,
-      branchId
-        ? prisma.branch.findFirst({
-            where: { id: branchId, clientId },
-            select: { id: true },
-          })
-        : true,
-    ]);
-
-  return Boolean(user && role && branch);
-}
-
-export async function GET(request: NextRequest) {
-  const t = await resolveClient(
-    request,
-    request.nextUrl.searchParams.get("clientId"),
-  );
-  if (!t.ok) return t.response;
-
-  try {
-    const users = await prisma.userData.findMany({
-      where: {
-        clientId: t.clientId,
-      },
-      include: {
-        role: true,
-        branch: true,
-        user: true,
-      },
-      orderBy: {
-        updatedAt: "desc",
-      },
-    });
-    return NextResponse.json(users);
-  } catch (error) {
-    return handlePrismaError(error);
-  }
+  const users = await prisma.user.findMany({
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      role: true,
+      banned: true,
+      createdAt: true,
+    },
+    orderBy: { name: "asc" },
+  });
+  return NextResponse.json(users);
 }
 
 export async function POST(request: NextRequest) {
-  const t = await resolveClient(request);
-  if (!t.ok) return t.response;
+  const g = await guard(["ADMIN"]);
+  if (g.error) return g.error;
 
   try {
-    const { name, email, roleId, ...rest } = await request.json();
-    if (!name || !roleId) {
-      return NextResponse.json(
-        { error: "Name and role are required" },
-        { status: 400 },
-      );
+    const body = await request.json();
+    if (!body.name || !body.email || !body.password) {
+      return bad("Nama, email, dan kata sandi wajib diisi.");
+    }
+    if (String(body.password).length < 8) {
+      return bad("Kata sandi minimal 8 karakter.");
+    }
+    if (body.role && !ROLES.includes(body.role)) {
+      return bad("Role tidak valid.");
     }
 
-    if (!(await refsOwnedByClient({ roleId, ...rest }, t.clientId))) {
-      return clientForbidden("Data referensi tidak ditemukan di client ini");
-    }
+    const exists = await prisma.user.findUnique({
+      where: { email: String(body.email).toLowerCase() },
+    });
+    if (exists) return bad("Email sudah terdaftar.", 409);
 
-    // clientId dari body dibuang, distempel dari sesi
-    delete rest.clientId;
-
-    const data = replaceUndefinedWithNull({
-      name,
-      email,
-      roleId,
-      ...rest,
-      clientId: t.clientId,
+    const created = await auth.api.signUpEmail({
+      body: {
+        name: body.name,
+        email: String(body.email).toLowerCase(),
+        password: body.password,
+      },
     });
 
-    const newUser = await prisma.$transaction(async (tx) => {
-      const created = await tx.userData.create({ data });
-      if (created.userId) {
-        await tx.user.update({
-          where: { id: created.userId },
-          data: { clientId: t.clientId },
+    const user = await prisma.user.update({
+      where: { id: created.user.id },
+      data: { role: body.role || "LEADER", emailVerified: true },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        role: true,
+        banned: true,
+        createdAt: true,
+      },
+    });
+
+    return NextResponse.json(user, { status: 201 });
+  } catch (error) {
+    return handlePrismaError(error);
+  }
+}
+
+export async function PATCH(request: NextRequest) {
+  const g = await guard(["ADMIN"]);
+  if (g.error) return g.error;
+
+  try {
+    const body = await request.json();
+    if (!body.id) return bad("ID pengguna wajib diisi.");
+    if (body.role && !ROLES.includes(body.role)) {
+      return bad("Role tidak valid.");
+    }
+    if (body.id === g.user.id && body.banned === true) {
+      return bad("Anda tidak dapat menonaktifkan akun sendiri.");
+    }
+    if (body.password && String(body.password).length < 8) {
+      return bad("Kata sandi minimal 8 karakter.");
+    }
+
+    const user = await prisma.user.update({
+      where: { id: body.id },
+      data: {
+        name: body.name,
+        email: body.email ? String(body.email).toLowerCase() : undefined,
+        role: body.role,
+        banned: body.banned,
+        banReason: body.banned === true ? "Dinonaktifkan Admin" : null,
+      },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        role: true,
+        banned: true,
+        createdAt: true,
+      },
+    });
+
+    if (body.password) {
+      const password = await hashPassword(body.password);
+      const account = await prisma.account.findFirst({
+        where: { userId: user.id, providerId: "credential" },
+      });
+      if (account) {
+        await prisma.account.update({
+          where: { id: account.id },
+          data: { password },
+        });
+      } else {
+        await prisma.account.create({
+          data: {
+            id: crypto.randomUUID(),
+            accountId: user.id,
+            providerId: "credential",
+            userId: user.id,
+            password,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          },
         });
       }
-      return created;
-    });
-
-    return NextResponse.json(newUser, { status: 201 });
-  } catch (error) {
-    return handlePrismaError(error);
-  }
-}
-
-export async function PUT(request: NextRequest) {
-  const t = await resolveClient(request);
-  if (!t.ok) return t.response;
-
-  try {
-    const { id, name, email, roleId, ...restData } = await request.json();
-    if (!id || !name || !roleId) {
-      return NextResponse.json(
-        { error: "ID, name, and role are required" },
-        { status: 400 },
-      );
     }
 
-    const owned = await prisma.userData.findFirst({
-      where: { id, clientId: t.clientId },
-      select: { id: true },
-    });
-    if (!owned) {
-      return clientForbidden("Data tidak ditemukan di client ini");
-    }
-
-    if (
-      !(await refsOwnedByClient({ roleId, ...restData }, t.clientId))
-    ) {
-      return clientForbidden("Data referensi tidak ditemukan di client ini");
-    }
-
-    // clientId dari body dibuang: klien tidak boleh memindah client
-    delete restData.clientId;
-
-    const data = replaceUndefinedWithNull({ name, email, roleId, ...restData });
-
-    const updatedUser = await prisma.userData.update({
-      where: { id },
-      data,
-    });
-
-    return NextResponse.json(updatedUser);
-  } catch (error) {
-    return handlePrismaError(error);
-  }
-}
-export async function DELETE(request: NextRequest) {
-  const t = await resolveClient(request);
-  if (!t.ok) return t.response;
-
-  try {
-    const { id } = await request.json();
-    if (!id) {
-      return NextResponse.json({ error: "ID is required" }, { status: 400 });
-    }
-
-    const owned = await prisma.userData.findFirst({
-      where: { id, clientId: t.clientId },
-      select: { id: true },
-    });
-    if (!owned) {
-      return clientForbidden("Data tidak ditemukan di client ini");
-    }
-
-    const deletedUser = await prisma.userData.delete({
-      where: { id },
-    });
-
-    return NextResponse.json(deletedUser);
+    return NextResponse.json(user);
   } catch (error) {
     return handlePrismaError(error);
   }
