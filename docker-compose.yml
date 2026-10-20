@@ -1,22 +1,4 @@
 services:
-  postgres:
-    image: postgres:15-alpine
-    container_name: prod-pg-santosatechid
-    environment:
-      POSTGRES_USER: luindoprima
-      POSTGRES_PASSWORD: luindoprima123
-      POSTGRES_DB: luindoprima
-    ports:
-      - "3128:5432"
-    volumes:
-      - ./postgres_data:/var/lib/postgresql/data
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U luindoprima -d luindoprima"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
   app:
     build:
       context: .
@@ -25,13 +7,13 @@ services:
         - NODE_ENV=production
       # PENTING: Tambahkan ini untuk cleanup build cache
       cache_from:
-        - ${COMPOSE_PROJECT_NAME}-web:latest
+        - luindoprima-web:latest
       # Batasi build context
       labels:
-        - "com.docker.compose.project=${COMPOSE_PROJECT_NAME}-web"
+        - "com.docker.compose.project=luindoprima-web"
 
-    image: ${COMPOSE_PROJECT_NAME}-web:latest
-    container_name: ${COMPOSE_PROJECT_NAME}-web-app
+    image: luindoprima-web:latest
+    container_name: luindoprima-web-app
     restart: unless-stopped
 
     ports:
@@ -78,15 +60,15 @@ services:
       - no-new-privileges:true
 
     labels:
-      - "com.${COMPOSE_PROJECT_NAME}.service=app"
-      - "com.${COMPOSE_PROJECT_NAME}.environment=production"
+      - "com.luindoprima.service=app"
+      - "com.luindoprima.environment=production"
 
   # ==========================================
   # CLEANUP SERVICE - Otomatis bersihkan unused images/containers
   # ==========================================
   docker-cleanup:
     image: docker:cli
-    container_name: ${COMPOSE_PROJECT_NAME}-cleanup
+    container_name: luindoprima-cleanup
     restart: unless-stopped
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
@@ -96,7 +78,7 @@ services:
       - cleanup
 
 networks:
-  ${COMPOSE_PROJECT_NAME}-app-network:
+  luindoprima-app-network:
     driver: bridge
 
 # PENTING: Batasi volume size (jika didukung driver)
