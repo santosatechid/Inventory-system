@@ -13,6 +13,16 @@ export async function GET() {
   const startMonth = new Date(now.getFullYear(), now.getMonth() - 5, 1);
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 
+  // Leader hanya melihat request/surat jalan miliknya sendiri.
+  const ownRequest =
+    g.user.role === "LEADER" ? { request: { leaderId: g.user.id } } : {};
+  const ownTurnover =
+    g.user.role === "LEADER"
+      ? { deliveryNote: { request: { leaderId: g.user.id } } }
+      : {};
+  const ownRequestId =
+    g.user.role === "LEADER" ? { leaderId: g.user.id } : {};
+
   const [items, incoming, confirmed, turnoverCount, pendingAdmin, pendingDirector] =
     await Promise.all([
       prisma.item.findMany({ orderBy: { code: "asc" } }),
@@ -21,7 +31,7 @@ export async function GET() {
         include: { items: true },
       }),
       prisma.deliveryNote.findMany({
-        where: { status: "CONFIRMED" },
+        where: { status: "CONFIRMED", ...ownRequest },
         include: {
           request: {
             select: {
@@ -36,9 +46,11 @@ export async function GET() {
         },
         orderBy: { issuedAt: "desc" },
       }),
-      prisma.turnover.count({ where: { status: "SUBMITTED" } }),
-      prisma.request.count({ where: { status: "PENDING_ADMIN" } }),
-      prisma.request.count({ where: { status: "PENDING_DIRECTOR" } }),
+      prisma.turnover.count({
+        where: { status: "SUBMITTED", ...ownTurnover },
+      }),
+      prisma.request.count({ where: { status: "PENDING_ADMIN", ...ownRequestId } }),
+      prisma.request.count({ where: { status: "PENDING_DIRECTOR", ...ownRequestId } }),
     ]);
 
   const chart = Array.from({ length: 6 }, (_, index) => {

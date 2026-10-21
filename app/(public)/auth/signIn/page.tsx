@@ -1,5 +1,6 @@
 "use client";
 
+import { useQueryClient } from "@tanstack/react-query";
 import { Loader2, Lock, Mail } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { type FormEvent, useState } from "react";
@@ -19,6 +20,7 @@ const DEMO = [
 
 export default function SignIn() {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const [email, setEmail] = useState("admin@luindoprima.co.id");
   const [password, setPassword] = useState("luindo123");
   const [remember, setRemember] = useState(true);
@@ -39,6 +41,8 @@ export default function SignIn() {
       return;
     }
 
+    // Buang data sesi sebelumnya supaya daftar leader tidak tercampur.
+    queryClient.clear();
     const session = await authClient.getSession();
     const role = (session.data?.user as { role?: string } | undefined)?.role;
     toast.success("Berhasil masuk.");

@@ -1,10 +1,11 @@
 "use client";
 
-import { Building2, FileText, Inbox, Plus } from "lucide-react";
+import { Building2, FileText, Inbox, Plus, Search } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
 import { PageHeader } from "@/components/shell/page-header";
+import { DateRangePicker } from "@/components/common/date-range-picker";
 import { EmptyState, StatCard } from "@/components/shell/stat-card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -27,7 +28,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { useCreateIncoming, useIncoming } from "@/hooks/inventory/useIncoming";
 import { useItems, useSuppliers } from "@/hooks/inventory/useItems";
-import { formatDate, todayInput } from "@/lib/format";
+import { formatDate, inRange, todayInput } from "@/lib/format";
 
 export default function IncomingPage() {
   const { data: rows = [] } = useIncoming();
@@ -41,6 +42,10 @@ export default function IncomingPage() {
   const [qty, setQty] = useState("1");
   const [documentNo, setDocumentNo] = useState("");
   const [note, setNote] = useState("");
+  const [search, setSearch] = useState("");
+  const [supplierFilter, setSupplierFilter] = useState("ALL");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
 
   const selectedItem = items.find((item) => item.id === itemId);
   const now = new Date();
@@ -55,6 +60,24 @@ export default function IncomingPage() {
     (sum, row) => sum + row.items.reduce((s, item) => s + item.qty, 0),
     0,
   );
+
+  const query = search.trim().toLowerCase();
+  const filtered = rows.filter((row) => {
+    const matchesSearch =
+      !query ||
+      row.number.toLowerCase().includes(query) ||
+      (row.documentNo ?? "").toLowerCase().includes(query) ||
+      row.supplier.name.toLowerCase().includes(query) ||
+      row.createdBy.name.toLowerCase().includes(query) ||
+      row.items.some((rowItem) =>
+        rowItem.item.name.toLowerCase().includes(query),
+      );
+    return (
+      matchesSearch &&
+      (supplierFilter === "ALL" || row.supplierId === supplierFilter) &&
+      inRange(row.receivedAt, dateFrom, dateTo)
+    );
+  });
 
   async function submit() {
     if (!supplierId || !itemId || Number(qty) <= 0) {
@@ -112,7 +135,41 @@ export default function IncomingPage() {
             </p>
           </div>
 
-          {rows.length === 0 ? (
+          <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+            <div className="border-border flex min-w-[200px] flex-1 items-center gap-2 rounded-lg border px-3">
+              <Search className="text-muted-foreground size-3.5" />
+              <Input
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+                placeholder="Cari nomor, dokumen, supplier, item, atau admin…"
+                className="h-9 border-0 bg-transparent px-0 text-xs shadow-none focus-visible:ring-0"
+              />
+            </div>
+            <Select value={supplierFilter} onValueChange={setSupplierFilter}>
+              <SelectTrigger className="h-9 w-full text-xs sm:w-[180px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ALL">Semua supplier</SelectItem>
+                {suppliers.map((supplier) => (
+                  <SelectItem key={supplier.id} value={supplier.id}>
+                    {supplier.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <DateRangePicker
+              from={dateFrom}
+              to={dateTo}
+              onChange={({ from, to }) => {
+                setDateFrom(from);
+                setDateTo(to);
+              }}
+              className="w-full sm:w-[250px]"
+            />
+          </div>
+
+          {filtered.length === 0 ? (
             <EmptyState
               title="Belum ada penerimaan"
               description="Catat barang masuk melalui form di samping."
@@ -130,7 +187,7 @@ export default function IncomingPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {rows.map((row) => (
+                {filtered.map((row) => (
                   <TableRow key={row.id}>
                     <TableCell>
                       <p className="text-xs font-medium">{row.number}</p>

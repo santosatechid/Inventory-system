@@ -4,6 +4,7 @@ import { Activity, CalendarDays, Download, Search } from "lucide-react";
 import { useState } from "react";
 
 import { PageHeader } from "@/components/shell/page-header";
+import { DateRangePicker } from "@/components/common/date-range-picker";
 import { EmptyState, StatCard } from "@/components/shell/stat-card";
 import { StatusBadge } from "@/components/shell/status-badge";
 import { Button } from "@/components/ui/button";
@@ -33,7 +34,7 @@ import { useDeliveryNotes } from "@/hooks/inventory/useDeliveryNotes";
 import { useRequests } from "@/hooks/inventory/useRequests";
 import { useTurnovers } from "@/hooks/inventory/useTurnovers";
 import { downloadCsv } from "@/lib/csv";
-import { formatDate } from "@/lib/format";
+import { formatDate, inRange, uniqueValues } from "@/lib/format";
 
 export default function InspectionsPage() {
   const { data: requests = [] } = useRequests();
@@ -41,6 +42,9 @@ export default function InspectionsPage() {
   const { data: turnovers = [] } = useTurnovers();
   const [search, setSearch] = useState("");
   const [site, setSite] = useState("ALL");
+  const [customer, setCustomer] = useState("ALL");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
   const [selectedId, setSelectedId] = useState("");
 
   const rows = requests
@@ -66,17 +70,20 @@ export default function InspectionsPage() {
     });
 
   const sites = Array.from(new Set(rows.map((row) => row.request.site)));
+  const customers = uniqueValues(rows.map((row) => row.request.customer));
+  const selected = rows.find((row) => row.request.id === selectedId);
   const filtered = rows.filter((row) => {
     const query = search.toLowerCase();
     return (
       (site === "ALL" || row.request.site === site) &&
+      (customer === "ALL" || row.request.customer === customer) &&
       (row.request.jobNo.toLowerCase().includes(query) ||
         row.request.site.toLowerCase().includes(query) ||
-        row.request.leader.name.toLowerCase().includes(query))
+        (row.request.customer ?? "").toLowerCase().includes(query) ||
+        row.request.leader.name.toLowerCase().includes(query)) &&
+      inRange(row.request.createdAt, dateFrom, dateTo)
     );
   });
-
-  const selected = rows.find((row) => row.request.id === selectedId);
 
   return (
     <div className="flex flex-col gap-5">
@@ -138,13 +145,13 @@ export default function InspectionsPage() {
       </div>
 
       <div className="bg-card border-border flex flex-col gap-3 rounded-xl border p-4">
-        <div className="flex flex-col gap-2 sm:flex-row">
-          <div className="border-border flex flex-1 items-center gap-2 rounded-lg border px-3">
+        <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+          <div className="border-border flex min-w-[200px] flex-1 items-center gap-2 rounded-lg border px-3">
             <Search className="text-muted-foreground size-3.5" />
             <Input
               value={search}
               onChange={(event) => setSearch(event.target.value)}
-              placeholder="Cari nomor pekerjaan, Leader, atau site…"
+              placeholder="Cari nomor pekerjaan, Leader, site, atau pelanggan…"
               className="h-9 border-0 bg-transparent px-0 text-xs shadow-none focus-visible:ring-0"
             />
           </div>
@@ -161,6 +168,28 @@ export default function InspectionsPage() {
               ))}
             </SelectContent>
           </Select>
+          <Select value={customer} onValueChange={setCustomer}>
+            <SelectTrigger className="h-9 w-full text-xs sm:w-[170px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ALL">Semua pelanggan</SelectItem>
+              {customers.map((value) => (
+                <SelectItem key={value} value={value}>
+                  {value}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <DateRangePicker
+            from={dateFrom}
+            to={dateTo}
+            onChange={({ from, to }) => {
+              setDateFrom(from);
+              setDateTo(to);
+            }}
+            className="w-full sm:w-[250px]"
+          />
         </div>
 
         {filtered.length === 0 ? (

@@ -29,11 +29,12 @@ export type SupplierInput = {
   isActive?: boolean;
 };
 
-export const useItems = () =>
+export const useItems = (options?: { staleTime?: number }) =>
   useQuery({
     queryKey: ["items"],
     queryFn: async () => (await apiGet<Item[]>("/api/items")).data,
     ...CACHE_STRATEGIES.static,
+    ...options,
   });
 
 export const useSuppliers = () =>

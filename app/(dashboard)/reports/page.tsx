@@ -1,18 +1,20 @@
 "use client";
 
 import {
-  CalendarDays,
   Download,
   FileSpreadsheet,
   Inbox,
   RotateCcw,
+  Search,
   Truck,
 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 
+import { DateRangePicker } from "@/components/common/date-range-picker";
 import { PageHeader } from "@/components/shell/page-header";
 import { StatusBadge } from "@/components/shell/status-badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -32,43 +34,47 @@ import { useDeliveryNotes } from "@/hooks/inventory/useDeliveryNotes";
 import { useIncoming } from "@/hooks/inventory/useIncoming";
 import { useTurnovers } from "@/hooks/inventory/useTurnovers";
 import { downloadCsv } from "@/lib/csv";
-import { formatDate } from "@/lib/format";
-
-function monthKey(value: string | Date | null) {
-  if (!value) return "";
-  const date = new Date(value);
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
-}
+import { formatDate, inRange, todayInput, uniqueValues } from "@/lib/format";
 
 export default function ReportsPage() {
   const { data: incoming = [] } = useIncoming();
   const { data: notes = [] } = useDeliveryNotes();
   const { data: turnovers = [] } = useTurnovers();
-  const [period, setPeriod] = useState(monthKey(new Date()));
-
-  const periods = useMemo(() => {
+  const [dateFrom, setDateFrom] = useState(() => {
     const now = new Date();
-    return Array.from({ length: 6 }, (_, index) => {
-      const date = new Date(now.getFullYear(), now.getMonth() - index, 1);
-      const value = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
-      return {
-        value,
-        label: new Intl.DateTimeFormat("id-ID", {
-          month: "long",
-          year: "numeric",
-        }).format(date),
-      };
-    });
-  }, []);
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`;
+  });
+  const [dateTo, setDateTo] = useState(todayInput());
+  const [customerFilter, setCustomerFilter] = useState("ALL");
+  const [statusFilter, setStatusFilter] = useState("ALL");
+  const [search, setSearch] = useState("");
 
-  const incomingRows = incoming.filter(
-    (row) => monthKey(row.receivedAt) === period,
+  const incomingRows = incoming.filter((row) =>
+    inRange(row.receivedAt, dateFrom, dateTo),
   );
-  const outgoingRows = notes.filter(
-    (row) => monthKey(row.confirmedAt ?? row.issuedAt) === period,
-  );
-  const turnoverRows = turnovers.filter(
-    (row) => monthKey(row.submittedAt) === period,
+  const customers = uniqueValues(notes.map((row) => row.request.customer));
+  const outgoingQuery = search.trim().toLowerCase();
+  const outgoingRows = notes.filter((row) => {
+    const matchesSearch =
+      !outgoingQuery ||
+      row.number.toLowerCase().includes(outgoingQuery) ||
+      row.request.jobNo.toLowerCase().includes(outgoingQuery) ||
+      row.request.site.toLowerCase().includes(outgoingQuery) ||
+      (row.request.customer ?? "").toLowerCase().includes(outgoingQuery) ||
+      row.request.leader.name.toLowerCase().includes(outgoingQuery) ||
+      row.items.some((item) =>
+        item.item.name.toLowerCase().includes(outgoingQuery),
+      );
+    return (
+      inRange(row.confirmedAt ?? row.issuedAt, dateFrom, dateTo) &&
+      matchesSearch &&
+      (customerFilter === "ALL" ||
+        row.request.customer === customerFilter) &&
+      (statusFilter === "ALL" || row.status === statusFilter)
+    );
+  });
+  const turnoverRows = turnovers.filter((row) =>
+    inRange(row.submittedAt, dateFrom, dateTo),
   );
 
   const incomingQty = incomingRows.reduce(
@@ -84,12 +90,12 @@ export default function ReportsPage() {
     <div className="flex flex-col gap-5">
       <PageHeader
         title="Laporan"
-        description="Unduh laporan bulanan sesuai template Excel PT Luindo Prima."
+        description="Unduh laporan sesuai rentang tanggal, mengikuti template Excel PT Luindo Prima."
         actions={
           <Button
             size="sm"
             onClick={() =>
-              downloadCsv(`laporan-barang-keluar-${period}.csv`, [
+              downloadCsv(`laporan-barang-keluar-${dateFrom}-${dateTo}.csv`, [
                 [
                   "Tanggal",
                   "No. Surat Jalan",
@@ -124,23 +130,17 @@ export default function ReportsPage() {
       <div className="bg-card border-border flex flex-col gap-3 rounded-xl border p-4 sm:flex-row sm:items-end">
         <div className="flex flex-1 flex-col gap-1.5">
           <span className="text-muted-foreground text-[11px] font-medium">
-            Periode
+            Rentang tanggal
           </span>
-          <Select value={period} onValueChange={setPeriod}>
-            <SelectTrigger className="w-full">
-              <span className="flex items-center gap-2">
-                <CalendarDays className="text-muted-foreground size-3.5" />
-                <SelectValue />
-              </span>
-            </SelectTrigger>
-            <SelectContent>
-              {periods.map((row) => (
-                <SelectItem key={row.value} value={row.value}>
-                  {row.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <DateRangePicker
+            from={dateFrom}
+            to={dateTo}
+            onChange={({ from, to }) => {
+              setDateFrom(from);
+              setDateTo(to);
+            }}
+            className="w-full sm:w-[280px]"
+          />
         </div>
         <div className="text-muted-foreground flex items-center gap-2 text-[11px]">
           <FileSpreadsheet className="size-3.5" />
@@ -255,7 +255,7 @@ export default function ReportsPage() {
                 className="w-fit"
                 onClick={() =>
                   downloadCsv(
-                    `${card.title.toLowerCase().replaceAll(" ", "-")}-${period}.csv`,
+                    `${card.title.toLowerCase().replaceAll(" ", "-")}-${dateFrom}-${dateTo}.csv`,
                     card.rows,
                   )
                 }
@@ -274,8 +274,44 @@ export default function ReportsPage() {
             Pratinjau Laporan Barang Keluar
           </p>
           <p className="text-muted-foreground text-[11.5px]">
-            {outgoingRows.length} baris pada periode terpilih
+            {outgoingRows.length} baris pada rentang terpilih
           </p>
+        </div>
+
+        <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+          <div className="border-border flex min-w-[200px] flex-1 items-center gap-2 rounded-lg border px-3">
+            <Search className="text-muted-foreground size-3.5" />
+            <Input
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              placeholder="Cari nomor, pekerjaan, site, pelanggan, leader, atau item…"
+              className="h-9 border-0 bg-transparent px-0 text-xs shadow-none focus-visible:ring-0"
+            />
+          </div>
+          <Select value={customerFilter} onValueChange={setCustomerFilter}>
+            <SelectTrigger className="h-9 w-full text-xs sm:w-[170px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ALL">Semua pelanggan</SelectItem>
+              {customers.map((value) => (
+                <SelectItem key={value} value={value}>
+                  {value}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="h-9 w-full text-xs sm:w-[150px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ALL">Semua status</SelectItem>
+              <SelectItem value="ISSUED">Diterbitkan</SelectItem>
+              <SelectItem value="CONFIRMED">Dibawa</SelectItem>
+              <SelectItem value="COMPLETED">Selesai</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
 
         <Table>
@@ -322,7 +358,7 @@ export default function ReportsPage() {
                   colSpan={7}
                   className="text-muted-foreground py-6 text-center text-xs"
                 >
-                  Tidak ada data pada periode ini.
+                  Tidak ada data pada rentang ini.
                 </TableCell>
               </TableRow>
             ) : null}

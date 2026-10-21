@@ -1,5 +1,6 @@
 "use client";
 
+import { useQueryClient } from "@tanstack/react-query";
 import {
   Activity,
   ClipboardCheck,
@@ -12,6 +13,7 @@ import {
   RotateCcw,
   Truck,
   Users,
+  Warehouse,
   type LucideIcon,
 } from "lucide-react";
 import Link from "next/link";
@@ -98,6 +100,12 @@ const NAV: NavGroup[] = [
         roles: ["ADMIN"],
       },
       {
+        title: "Stok Inventory",
+        url: "/stock",
+        icon: Warehouse,
+        roles: ["DIREKTUR"],
+      },
+      {
         title: "Laporan",
         url: "/reports",
         icon: FileSpreadsheet,
@@ -123,6 +131,7 @@ const TITLES: Record<string, string> = {
   "/turnover": "Turnover",
   "/inspections": "Progres Inspeksi",
   "/items": "Master Item & Supplier",
+  "/stock": "Stok Inventory",
   "/reports": "Laporan",
   "/users": "Manajemen Pengguna",
 };
@@ -136,6 +145,7 @@ export function AppShell({
 }) {
   const pathname = usePathname();
   const router = useRouter();
+  const queryClient = useQueryClient();
   const groups = NAV.map((group) => ({
     ...group,
     items: group.items.filter((item) => item.roles.includes(user.role)),
@@ -254,6 +264,8 @@ export function AppShell({
                 <DropdownMenuItem
                   onClick={async () => {
                     await signOut();
+                    // Data tiap peran (leader lain) tidak boleh ikut ke sesi berikutnya.
+                    queryClient.clear();
                     router.push("/auth/signIn");
                     router.refresh();
                   }}

@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, CheckCheck, ClipboardClock, History, X } from "lucide-react";
+import { Check, CheckCheck, ClipboardClock, History, Search, X } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -8,6 +8,7 @@ import { PageHeader } from "@/components/shell/page-header";
 import { EmptyState, StatCard } from "@/components/shell/stat-card";
 import { StatusBadge } from "@/components/shell/status-badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   Table,
   TableBody,
@@ -29,7 +30,19 @@ export default function ApprovalsPage() {
   const queue = rows.filter((row) => row.status === "PENDING_DIRECTOR");
   const [selectedId, setSelectedId] = useState("");
   const [note, setNote] = useState("");
-  const selected = queue.find((row) => row.id === selectedId) ?? queue[0];
+  const [search, setSearch] = useState("");
+  const query = search.trim().toLowerCase();
+  const filteredQueue = queue.filter(
+    (row) =>
+      !query ||
+      row.number.toLowerCase().includes(query) ||
+      row.jobNo.toLowerCase().includes(query) ||
+      row.site.toLowerCase().includes(query) ||
+      (row.customer ?? "").toLowerCase().includes(query) ||
+      row.leader.name.toLowerCase().includes(query),
+  );
+  const selected =
+    filteredQueue.find((row) => row.id === selectedId) ?? filteredQueue[0];
 
   async function decideSelected(action: "approve" | "reject") {
     if (!selected) return;
@@ -231,9 +244,18 @@ export default function ApprovalsPage() {
             <div className="bg-card border-border flex flex-col gap-2 rounded-xl border p-4">
               <p className="text-[13.5px] font-semibold">Antrean Persetujuan</p>
               <p className="text-muted-foreground text-[11.5px]">
-                {queue.length} request menunggu Anda
+                {filteredQueue.length} request menunggu Anda
               </p>
-              {queue.map((row) => (
+              <div className="border-border flex items-center gap-2 rounded-lg border px-3">
+                <Search className="text-muted-foreground size-3.5" />
+                <Input
+                  value={search}
+                  onChange={(event) => setSearch(event.target.value)}
+                  placeholder="Cari nomor, pekerjaan, site, pelanggan…"
+                  className="h-9 border-0 bg-transparent px-0 text-xs shadow-none focus-visible:ring-0"
+                />
+              </div>
+              {filteredQueue.map((row) => (
                 <button
                   key={row.id}
                   onClick={() => {

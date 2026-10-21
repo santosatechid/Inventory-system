@@ -52,14 +52,19 @@ export default function UsersPage() {
   const createUser = useCreateUser();
   const [tab, setTab] = useState("ALL");
   const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("ALL");
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState(EMPTY);
 
   const filtered = users.filter((user) => {
     const matchesTab = tab === "ALL" || user.role === tab;
+    const matchesStatus =
+      statusFilter === "ALL" ||
+      (statusFilter === "BANNED" ? user.banned : !user.banned);
     const query = search.toLowerCase();
     return (
       matchesTab &&
+      matchesStatus &&
       (user.name.toLowerCase().includes(query) ||
         user.email.toLowerCase().includes(query))
     );
@@ -200,14 +205,26 @@ export default function UsersPage() {
         </TabsList>
       </Tabs>
 
-      <div className="border-border flex items-center gap-2 rounded-lg border px-3">
-        <Search className="text-muted-foreground size-3.5" />
-        <Input
-          value={search}
-          onChange={(event) => setSearch(event.target.value)}
-          placeholder="Cari nama atau email pengguna…"
-          className="h-9 border-0 bg-transparent px-0 text-xs shadow-none focus-visible:ring-0"
-        />
+      <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+        <div className="border-border flex min-w-[200px] flex-1 items-center gap-2 rounded-lg border px-3">
+          <Search className="text-muted-foreground size-3.5" />
+          <Input
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+            placeholder="Cari nama atau email pengguna…"
+            className="h-9 border-0 bg-transparent px-0 text-xs shadow-none focus-visible:ring-0"
+          />
+        </div>
+        <Select value={statusFilter} onValueChange={setStatusFilter}>
+          <SelectTrigger className="h-9 w-full text-xs sm:w-[150px]">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="ALL">Semua status</SelectItem>
+            <SelectItem value="ACTIVE">Aktif</SelectItem>
+            <SelectItem value="BANNED">Diblokir</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
       <div className="bg-card border-border overflow-hidden rounded-xl border">

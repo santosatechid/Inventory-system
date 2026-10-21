@@ -72,6 +72,10 @@ export default function ItemsPage() {
 
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("ALL");
+  const [supplierFilter, setSupplierFilter] = useState("ALL");
+  const [stockFilter, setStockFilter] = useState("ALL");
+  const [supplierSearch, setSupplierSearch] = useState("");
+  const [supplierStatus, setSupplierStatus] = useState("ALL");
   const [itemForm, setItemForm] = useState(EMPTY_ITEM);
   const [supplierForm, setSupplierForm] = useState(EMPTY_SUPPLIER);
   const [itemOpen, setItemOpen] = useState(false);
@@ -89,11 +93,36 @@ export default function ItemsPage() {
     const matchesSearch =
       item.name.toLowerCase().includes(query) ||
       item.code.toLowerCase().includes(query) ||
-      (item.brand ?? "").toLowerCase().includes(query);
+      (item.brand ?? "").toLowerCase().includes(query) ||
+      (item.supplier?.name ?? "").toLowerCase().includes(query);
+    const matchesSupplier =
+      supplierFilter === "ALL" || item.supplierId === supplierFilter;
+    const matchesStock =
+      stockFilter === "ALL" ||
+      (stockFilter === "EMPTY" && item.stockGudang === 0) ||
+      (stockFilter === "LOW" &&
+        item.stockGudang > 0 &&
+        item.stockGudang <= item.minStock) ||
+      (stockFilter === "SAFE" && item.stockGudang > item.minStock);
     return (
-      matchesSearch && (category === "ALL" || item.category === category)
+      matchesSearch &&
+      matchesSupplier &&
+      matchesStock &&
+      (category === "ALL" || item.category === category)
     );
   });
+
+  const supplierQuery = supplierSearch.trim().toLowerCase();
+  const filteredSuppliers = suppliers.filter(
+    (supplier) =>
+      (!supplierQuery ||
+        supplier.name.toLowerCase().includes(supplierQuery) ||
+        (supplier.contact ?? "").toLowerCase().includes(supplierQuery) ||
+        (supplier.phone ?? "").toLowerCase().includes(supplierQuery) ||
+        (supplier.email ?? "").toLowerCase().includes(supplierQuery)) &&
+      (supplierStatus === "ALL" ||
+        (supplierStatus === "ACTIVE" ? supplier.isActive : !supplier.isActive)),
+  );
 
   const lowStock = items.filter((item) => item.stockGudang <= item.minStock);
 
@@ -467,13 +496,13 @@ export default function ItemsPage() {
         </TabsList>
 
         <TabsContent value="items" className="flex flex-col gap-3">
-          <div className="flex flex-col gap-2 sm:flex-row">
-            <div className="border-border flex flex-1 items-center gap-2 rounded-lg border px-3">
+          <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+            <div className="border-border flex min-w-[200px] flex-1 items-center gap-2 rounded-lg border px-3">
               <Search className="text-muted-foreground size-3.5" />
               <Input
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
-                placeholder="Cari nama, kode, atau merek item…"
+                placeholder="Cari nama, kode, merek, atau supplier item…"
                 className="h-9 border-0 bg-transparent px-0 text-xs shadow-none focus-visible:ring-0"
               />
             </div>
@@ -488,6 +517,30 @@ export default function ItemsPage() {
                     {value}
                   </SelectItem>
                 ))}
+              </SelectContent>
+            </Select>
+            <Select value={supplierFilter} onValueChange={setSupplierFilter}>
+              <SelectTrigger className="h-9 w-full text-xs sm:w-[170px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ALL">Semua supplier</SelectItem>
+                {suppliers.map((supplier) => (
+                  <SelectItem key={supplier.id} value={supplier.id}>
+                    {supplier.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select value={stockFilter} onValueChange={setStockFilter}>
+              <SelectTrigger className="h-9 w-full text-xs sm:w-[150px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ALL">Semua stok</SelectItem>
+                <SelectItem value="SAFE">Aman</SelectItem>
+                <SelectItem value="LOW">Menipis</SelectItem>
+                <SelectItem value="EMPTY">Habis</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -574,6 +627,36 @@ export default function ItemsPage() {
         </TabsContent>
 
         <TabsContent value="suppliers" className="flex flex-col gap-3">
+          <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+            <div className="border-border flex min-w-[200px] flex-1 items-center gap-2 rounded-lg border px-3">
+              <Search className="text-muted-foreground size-3.5" />
+              <Input
+                value={supplierSearch}
+                onChange={(event) => setSupplierSearch(event.target.value)}
+                placeholder="Cari nama, kontak, telepon, atau email supplier…"
+                className="h-9 border-0 bg-transparent px-0 text-xs shadow-none focus-visible:ring-0"
+              />
+            </div>
+            <Select value={supplierStatus} onValueChange={setSupplierStatus}>
+              <SelectTrigger className="h-9 w-full text-xs sm:w-[150px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ALL">Semua status</SelectItem>
+                <SelectItem value="ACTIVE">Aktif</SelectItem>
+                <SelectItem value="INACTIVE">Nonaktif</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {filteredSuppliers.length === 0 ? (
+            <div className="bg-card border-border rounded-xl border">
+              <EmptyState
+                title="Tidak ada supplier"
+                description="Ubah filter atau tambah supplier baru."
+              />
+            </div>
+          ) : (
           <div className="bg-card border-border overflow-hidden rounded-xl border">
             <Table>
               <TableHeader>
@@ -587,7 +670,7 @@ export default function ItemsPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {suppliers.map((supplier) => (
+                {filteredSuppliers.map((supplier) => (
                   <TableRow key={supplier.id}>
                     <TableCell className="text-xs font-medium">
                       {supplier.name}
@@ -615,6 +698,7 @@ export default function ItemsPage() {
               </TableBody>
             </Table>
           </div>
+          )}
         </TabsContent>
       </Tabs>
     </div>

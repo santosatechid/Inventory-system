@@ -1,10 +1,11 @@
 "use client";
 
-import { CheckCheck, RotateCcw, Send } from "lucide-react";
+import { CheckCheck, RotateCcw, Search, Send } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
 import { PageHeader } from "@/components/shell/page-header";
+import { DateRangePicker } from "@/components/common/date-range-picker";
 import { EmptyState, StatCard } from "@/components/shell/stat-card";
 import { StatusBadge } from "@/components/shell/status-badge";
 import { Button } from "@/components/ui/button";
@@ -32,7 +33,7 @@ import {
   useTurnovers,
   useVerifyTurnover,
 } from "@/hooks/inventory/useTurnovers";
-import { formatDate } from "@/lib/format";
+import { formatDate, inRange } from "@/lib/format";
 import { authClient } from "@/services/auth/authClients";
 
 export default function TurnoverPage() {
@@ -46,6 +47,10 @@ export default function TurnoverPage() {
 
   const [noteId, setNoteId] = useState("");
   const [note, setNote] = useState("");
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("ALL");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
   const [values, setValues] = useState<
     Record<string, { used: string; returned: string; damaged: string }>
   >({});
@@ -55,6 +60,24 @@ export default function TurnoverPage() {
   );
   const selected = available.find((row) => row.id === noteId);
   const pending = turnovers.filter((row) => row.status === "SUBMITTED");
+
+  const query = search.trim().toLowerCase();
+  const filtered = turnovers.filter((row) => {
+    const matchesSearch =
+      !query ||
+      row.deliveryNote.number.toLowerCase().includes(query) ||
+      row.deliveryNote.request.site.toLowerCase().includes(query) ||
+      row.deliveryNote.request.leader.name.toLowerCase().includes(query) ||
+      (row.deliveryNote.request.customer ?? "")
+        .toLowerCase()
+        .includes(query) ||
+      row.submittedBy.name.toLowerCase().includes(query);
+    return (
+      matchesSearch &&
+      (statusFilter === "ALL" || row.status === statusFilter) &&
+      inRange(row.submittedAt, dateFrom, dateTo)
+    );
+  });
 
   function valueFor(itemId: string) {
     return values[itemId] ?? { used: "0", returned: "0", damaged: "0" };
@@ -314,7 +337,40 @@ export default function TurnoverPage() {
 
           <div className="bg-card border-border flex flex-col gap-3 rounded-xl border p-4">
             <p className="text-[13.5px] font-semibold">Riwayat Turnover</p>
-            {turnovers.length === 0 ? (
+
+            <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+              <div className="border-border flex min-w-[200px] flex-1 items-center gap-2 rounded-lg border px-3">
+                <Search className="text-muted-foreground size-3.5" />
+                <Input
+                  value={search}
+                  onChange={(event) => setSearch(event.target.value)}
+                  placeholder="Cari surat jalan, site, leader, pelanggan, atau pengirim…"
+                  className="h-9 border-0 bg-transparent px-0 text-xs shadow-none focus-visible:ring-0"
+                />
+              </div>
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="h-9 w-full text-xs sm:w-[170px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ALL">Semua status</SelectItem>
+                  <SelectItem value="DRAFT">Draft</SelectItem>
+                  <SelectItem value="SUBMITTED">Menunggu Verifikasi</SelectItem>
+                  <SelectItem value="VERIFIED">Terverifikasi</SelectItem>
+                </SelectContent>
+              </Select>
+              <DateRangePicker
+                from={dateFrom}
+                to={dateTo}
+                onChange={({ from, to }) => {
+                  setDateFrom(from);
+                  setDateTo(to);
+                }}
+                className="w-full sm:w-[250px]"
+              />
+            </div>
+
+            {filtered.length === 0 ? (
               <EmptyState title="Belum ada turnover" />
             ) : (
               <Table>
@@ -328,7 +384,7 @@ export default function TurnoverPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {turnovers.map((row) => (
+                  {filtered.map((row) => (
                     <TableRow key={row.id}>
                       <TableCell className="text-xs font-medium">
                         {row.deliveryNote.number}

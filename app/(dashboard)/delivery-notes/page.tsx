@@ -1,10 +1,11 @@
 "use client";
 
-import { Check, Download, FilePlus, Printer, Truck } from "lucide-react";
+import { Check, Download, FilePlus, Printer, Search, Truck } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
 import { PageHeader } from "@/components/shell/page-header";
+import { DateRangePicker } from "@/components/common/date-range-picker";
 import { EmptyState, StatCard } from "@/components/shell/stat-card";
 import { StatusBadge } from "@/components/shell/status-badge";
 import { Button } from "@/components/ui/button";
@@ -40,7 +41,7 @@ import {
 } from "@/hooks/inventory/useDeliveryNotes";
 import { useRequests } from "@/hooks/inventory/useRequests";
 import { downloadCsv } from "@/lib/csv";
-import { formatDate } from "@/lib/format";
+import { formatDate, inRange, uniqueValues } from "@/lib/format";
 import { authClient } from "@/services/auth/authClients";
 
 export default function DeliveryNotesPage() {
@@ -56,8 +57,33 @@ export default function DeliveryNotesPage() {
   const [issueOpen, setIssueOpen] = useState(false);
   const [requestId, setRequestId] = useState("");
   const [vehicle, setVehicle] = useState("");
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("ALL");
+  const [customerFilter, setCustomerFilter] = useState("ALL");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
 
-  const selected = rows.find((row) => row.id === selectedId) ?? rows[0];
+  const customers = uniqueValues(rows.map((row) => row.request.customer));
+  const query = search.trim().toLowerCase();
+  const filtered = rows.filter((row) => {
+    const matchesSearch =
+      !query ||
+      row.number.toLowerCase().includes(query) ||
+      row.request.jobNo.toLowerCase().includes(query) ||
+      row.request.site.toLowerCase().includes(query) ||
+      row.request.leader.name.toLowerCase().includes(query) ||
+      (row.request.customer ?? "").toLowerCase().includes(query) ||
+      row.items.some((item) => item.item.name.toLowerCase().includes(query));
+    return (
+      matchesSearch &&
+      (statusFilter === "ALL" || row.status === statusFilter) &&
+      (customerFilter === "ALL" ||
+        row.request.customer === customerFilter) &&
+      inRange(row.issuedAt, dateFrom, dateTo)
+    );
+  });
+
+  const selected = filtered.find((row) => row.id === selectedId) ?? filtered[0];
   const approved = requests.filter(
     (row) => row.status === "APPROVED" && !row.delivery,
   );
@@ -192,7 +218,52 @@ export default function DeliveryNotesPage() {
             </p>
           </div>
 
-          {rows.length === 0 ? (
+          <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+            <div className="border-border flex min-w-[200px] flex-1 items-center gap-2 rounded-lg border px-3">
+              <Search className="text-muted-foreground size-3.5" />
+              <Input
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+                placeholder="Cari nomor, pekerjaan, site, pelanggan, leader, atau item…"
+                className="h-9 border-0 bg-transparent px-0 text-xs shadow-none focus-visible:ring-0"
+              />
+            </div>
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="h-9 w-full text-xs sm:w-[150px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ALL">Semua status</SelectItem>
+                <SelectItem value="ISSUED">Diterbitkan</SelectItem>
+                <SelectItem value="CONFIRMED">Dibawa</SelectItem>
+                <SelectItem value="COMPLETED">Selesai</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={customerFilter} onValueChange={setCustomerFilter}>
+              <SelectTrigger className="h-9 w-full text-xs sm:w-[170px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ALL">Semua pelanggan</SelectItem>
+                {customers.map((customer) => (
+                  <SelectItem key={customer} value={customer}>
+                    {customer}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <DateRangePicker
+              from={dateFrom}
+              to={dateTo}
+              onChange={({ from, to }) => {
+                setDateFrom(from);
+                setDateTo(to);
+              }}
+              className="w-full sm:w-[250px]"
+            />
+          </div>
+
+          {filtered.length === 0 ? (
             <EmptyState
               title="Belum ada surat jalan"
               description="Terbitkan dari request yang telah disetujui Direktur."
@@ -210,7 +281,7 @@ export default function DeliveryNotesPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {rows.map((row) => (
+                {filtered.map((row) => (
                   <TableRow
                     key={row.id}
                     className="cursor-pointer"

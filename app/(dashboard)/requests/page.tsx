@@ -6,6 +6,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 
 import { PageHeader } from "@/components/shell/page-header";
+import { DateRangePicker } from "@/components/common/date-range-picker";
 import { EmptyState } from "@/components/shell/stat-card";
 import { StatusBadge } from "@/components/shell/status-badge";
 import { Button } from "@/components/ui/button";
@@ -36,7 +37,7 @@ import {
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { useDecideRequest, useRequests } from "@/hooks/inventory/useRequests";
-import { formatDate, formatDateTime } from "@/lib/format";
+import { formatDate, formatDateTime, inRange, uniqueValues } from "@/lib/format";
 import { authClient } from "@/services/auth/authClients";
 import type { InventoryRequest } from "@/types/inventory";
 
@@ -56,8 +57,13 @@ export default function RequestsPage() {
   const [tab, setTab] = useState("ALL");
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("ALL");
+  const [customer, setCustomer] = useState("ALL");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
   const [selected, setSelected] = useState<InventoryRequest | null>(null);
   const [note, setNote] = useState("");
+
+  const customers = uniqueValues(rows.map((row) => row.customer));
 
   const filtered = rows.filter((row) => {
     const matchesTab =
@@ -67,13 +73,21 @@ export default function RequestsPage() {
       (tab === "APPROVED" && row.status === "APPROVED") ||
       (tab === "COMPLETED" && row.status === "COMPLETED");
     const matchesStatus = status === "ALL" || row.status === status;
+    const matchesCustomer = customer === "ALL" || row.customer === customer;
     const query = search.toLowerCase();
     const matchesSearch =
       row.number.toLowerCase().includes(query) ||
       row.jobNo.toLowerCase().includes(query) ||
       row.site.toLowerCase().includes(query) ||
+      (row.customer ?? "").toLowerCase().includes(query) ||
       row.leader.name.toLowerCase().includes(query);
-    return matchesTab && matchesStatus && matchesSearch;
+    return (
+      matchesTab &&
+      matchesStatus &&
+      matchesCustomer &&
+      matchesSearch &&
+      inRange(row.createdAt, dateFrom, dateTo)
+    );
   });
 
   const canDecide =
@@ -143,13 +157,13 @@ export default function RequestsPage() {
         </TabsList>
       </Tabs>
 
-      <div className="flex flex-col gap-2 sm:flex-row">
-        <div className="border-border flex flex-1 items-center gap-2 rounded-lg border px-3">
+      <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+        <div className="border-border flex min-w-[200px] flex-1 items-center gap-2 rounded-lg border px-3">
           <Search className="text-muted-foreground size-3.5" />
           <Input
             value={search}
             onChange={(event) => setSearch(event.target.value)}
-            placeholder="Cari nomor request, nomor pekerjaan, atau site…"
+            placeholder="Cari nomor request, pekerjaan, site, atau pelanggan…"
             className="h-9 border-0 bg-transparent px-0 text-xs shadow-none focus-visible:ring-0"
           />
         </div>
@@ -166,6 +180,28 @@ export default function RequestsPage() {
             <SelectItem value="COMPLETED">Selesai</SelectItem>
           </SelectContent>
         </Select>
+        <Select value={customer} onValueChange={setCustomer}>
+          <SelectTrigger className="h-9 w-full text-xs sm:w-[170px]">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="ALL">Semua pelanggan</SelectItem>
+            {customers.map((value) => (
+              <SelectItem key={value} value={value}>
+                {value}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <DateRangePicker
+          from={dateFrom}
+          to={dateTo}
+          onChange={({ from, to }) => {
+            setDateFrom(from);
+            setDateTo(to);
+          }}
+          className="w-full sm:w-[250px]"
+        />
       </div>
 
       <div className="bg-card border-border overflow-hidden rounded-xl border">
