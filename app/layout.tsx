@@ -17,7 +17,7 @@ const inter = localFont({
 });
 
 export const viewport: Viewport = {
-  themeColor: "#ffffff",
+  themeColor: "#1d9c2f",
   width: "device-width",
   initialScale: 1,
 };
@@ -25,7 +25,11 @@ export const viewport: Viewport = {
 export const metadata: Metadata = {
   title: "NDT Inventory · PT Luindo Prima",
   description: "Sistem inventori consumable NDT PT Luindo Prima",
-  icons: { icon: process.env.CLIENT_FAVICON || "/favicon.ico" },
+  icons: {
+    icon: process.env.CLIENT_FAVICON || "/favicon.ico",
+    apple: process.env.CLIENT_FAVICON || "/icon-192.webp",
+  },
+  manifest: "/manifest.json",
 };
 
 export default function RootLayout({

@@ -3,6 +3,7 @@
 import { useQueryClient } from "@tanstack/react-query";
 import {
   Activity,
+  Bell,
   ClipboardCheck,
   ClipboardList,
   FileSpreadsheet,
@@ -16,6 +17,7 @@ import {
   Warehouse,
   type LucideIcon,
 } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import type { ReactNode } from "react";
@@ -31,6 +33,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdownMenu";
 import { cn } from "@/lib/shadcn/utils";
+import { useRequests } from "@/hooks/inventory/useRequests";
 import { signOut } from "@/services/auth/authClients";
 import type { Role } from "@/types/inventory";
 
@@ -136,6 +139,67 @@ const TITLES: Record<string, string> = {
   "/users": "Manajemen Pengguna",
 };
 
+function ApprovalBell({ role }: { role: Role }) {
+  const router = useRouter();
+  const { data: rows = [] } = useRequests();
+  const status =
+    role === "ADMIN"
+      ? "PENDING_ADMIN"
+      : role === "DIREKTUR"
+        ? "PENDING_DIRECTOR"
+        : null;
+  if (!status) return null;
+
+  const pending = rows.filter((row) => row.status === status);
+  const href = role === "DIREKTUR" ? "/approvals" : "/requests";
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <button
+          aria-label={`Notifikasi persetujuan, ${pending.length} menunggu`}
+          className="hover:bg-secondary focus-visible:ring-ring relative flex size-8 items-center justify-center rounded-full focus-visible:ring-2 focus-visible:outline-none"
+        >
+          <Bell className="size-4" />
+          {pending.length > 0 ? (
+            <span className="bg-destructive-solid absolute -top-0.5 -right-0.5 flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[9.5px] leading-4 font-semibold text-white">
+              {pending.length > 9 ? "9+" : pending.length}
+            </span>
+          ) : null}
+        </button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-80">
+        <DropdownMenuLabel className="text-xs">
+          Menunggu persetujuan Anda
+        </DropdownMenuLabel>
+        {pending.length === 0 ? (
+          <p className="text-muted-foreground px-2 py-3 text-[11.5px]">
+            Tidak ada permintaan yang menunggu.
+          </p>
+        ) : (
+          pending.slice(0, 5).map((row) => (
+            <DropdownMenuItem
+              key={row.id}
+              className="flex-col items-start gap-0.5"
+              onClick={() => router.push(href)}
+            >
+              <span className="text-[12px] font-medium">{row.number}</span>
+              <span className="text-muted-foreground text-[10.5px]">
+                {row.site} · {row.leader.name} · {row.items.length} item
+              </span>
+            </DropdownMenuItem>
+          ))
+        )}
+        <DropdownMenuSeparator />
+        <DropdownMenuItem onClick={() => router.push(href)}>
+          <ClipboardCheck />
+          Lihat semua permintaan
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
 export function AppShell({
   user,
   children,
@@ -166,9 +230,14 @@ export function AppShell({
     <div className="bg-background flex min-h-screen">
       <aside className="bg-sidebar border-border sticky top-0 hidden h-screen w-[248px] shrink-0 flex-col border-r px-3 py-4 md:flex">
         <Link href="/dashboard" className="flex items-center gap-2.5 px-2">
-          <span className="bg-foreground text-background flex size-9 items-center justify-center rounded-lg text-[11px] font-bold">
-            LP
-          </span>
+          <Image
+            src="/luindo-logo.webp"
+            alt="LUINDO Prima"
+            width={293}
+            height={184}
+            priority
+            className="h-10 w-auto"
+          />
           <span className="flex flex-col">
             <span className="text-[12.5px] font-semibold">NDT Inventory</span>
             <span className="text-muted-foreground text-[10px]">
@@ -238,6 +307,7 @@ export function AppShell({
           </div>
 
           <div className="flex items-center gap-2">
+            <ApprovalBell role={user.role} />
             <Badge variant="outline" className="px-2.5 text-[11px] capitalize">
               {user.role.toLowerCase()}
             </Badge>

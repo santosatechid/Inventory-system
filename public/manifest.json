@@ -1,24 +1,24 @@
 {
-  "name": "Sera App",
-  "short_name": "Sera App",
-  "description": "Aplikasi portal utama Sera App",
+  "name": "NDT Inventory · PT Luindo Prima",
+  "short_name": "LUINDO",
+  "description": "Sistem inventori consumable NDT PT Luindo Prima",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",
-  "theme_color": "#ffffff",
+  "theme_color": "#1d9c2f",
   "orientation": "portrait-primary",
   "icons": [
     {
-      "src": "./Logo.svg",
+      "src": "./icon-192.webp",
       "sizes": "192x192",
-      "type": "image/svg+xml",
-      "purpose": "maskable any"
+      "type": "image/webp",
+      "purpose": "any"
     },
     {
-      "src": "./Logo.svg",
+      "src": "./icon-512.webp",
       "sizes": "512x512",
-      "type": "image/svg+xml",
-      "purpose": "maskable any"
+      "type": "image/webp",
+      "purpose": "any"
     }
   ]
 }

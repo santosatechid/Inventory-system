@@ -18,8 +18,9 @@ export type RequestInput = {
 
 export type RequestDecision = {
   id: string;
-  action: "approve" | "reject";
+  action?: "approve" | "reject";
   note?: string;
+  items?: { id: string; qty: number }[];
 };
 
 export const useRequests = () =>

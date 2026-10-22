@@ -2,6 +2,7 @@
 
 import { useQueryClient } from "@tanstack/react-query";
 import { Loader2, Lock, Mail } from "lucide-react";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { type FormEvent, useState } from "react";
 import { toast } from "sonner";
@@ -60,11 +61,15 @@ export default function SignIn() {
     <div className="flex min-h-screen flex-col lg:flex-row">
       <aside className="bg-navy text-navy-foreground flex shrink-0 flex-col justify-between p-8 lg:w-[600px] lg:p-[52px]">
         <div className="flex items-center gap-3">
-          <span className="bg-navy-foreground text-navy flex size-9 items-center justify-center rounded-lg text-[11px] font-bold">
-            LP
-          </span>
+          <Image
+            src="/luindo-logo.webp"
+            alt="LUINDO Prima"
+            width={293}
+            height={184}
+            priority
+            className="h-12 w-auto"
+          />
           <span className="text-[13px] font-semibold">NDT Inventory</span>
-          <span className="text-navy-muted text-[10px]">· PT Luindo Prima</span>
         </div>
 
         <div className="mt-16 flex flex-col gap-4 lg:mt-0">
@@ -83,18 +88,13 @@ export default function SignIn() {
 
       <section className="flex flex-1 items-center justify-center px-5 py-10">
         <div className="border-border w-full max-w-[384px] rounded-xl border p-7">
-          <div className="flex items-center gap-3">
-            <span className="bg-foreground text-background flex h-[42px] w-16 items-center justify-center rounded-md text-[13px] font-bold">
-              LP
-            </span>
-            <div>
-              <p className="text-[10px] font-semibold tracking-[0.5px]">
-                PT LUINDO PRIMA
-              </p>
-              <p className="text-muted-foreground text-[10.5px]">
-                Sistem Inventori Consumable NDT
-              </p>
-            </div>
+          <div className="flex flex-col gap-0.5">
+            <p className="text-[10px] font-semibold tracking-[0.5px]">
+              PT LUINDO PRIMA
+            </p>
+            <p className="text-muted-foreground text-[10.5px]">
+              Sistem Inventori Consumable NDT
+            </p>
           </div>
 
           <div className="bg-border my-4 h-px" />

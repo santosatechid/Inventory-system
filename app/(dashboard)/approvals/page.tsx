@@ -1,6 +1,13 @@
 "use client";
 
-import { Check, CheckCheck, ClipboardClock, History, Search, X } from "lucide-react";
+import {
+  Check,
+  CheckCheck,
+  ClipboardClock,
+  History,
+  Search,
+  X,
+} from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -30,6 +37,7 @@ export default function ApprovalsPage() {
   const queue = rows.filter((row) => row.status === "PENDING_DIRECTOR");
   const [selectedId, setSelectedId] = useState("");
   const [note, setNote] = useState("");
+  const [qty, setQty] = useState<Record<string, number>>({});
   const [search, setSearch] = useState("");
   const query = search.trim().toLowerCase();
   const filteredQueue = queue.filter(
@@ -46,7 +54,15 @@ export default function ApprovalsPage() {
 
   async function decideSelected(action: "approve" | "reject") {
     if (!selected) return;
-    await decide.mutateAsync({ id: selected.id, action, note: note || undefined });
+    await decide.mutateAsync({
+      id: selected.id,
+      action,
+      note: note || undefined,
+      items: selected.items.map((row) => ({
+        id: row.id,
+        qty: qty[row.id] ?? row.qty,
+      })),
+    });
     toast.success(
       action === "approve"
         ? "Request disetujui. Admin dapat menerbitkan surat jalan."
@@ -54,6 +70,7 @@ export default function ApprovalsPage() {
     );
     setSelectedId("");
     setNote("");
+    setQty({});
   }
 
   const approved = rows.filter((row) => row.status === "APPROVED").length;
@@ -91,11 +108,7 @@ export default function ApprovalsPage() {
             Siap surat jalan
           </span>
         </StatCard>
-        <StatCard
-          label="Ditolak"
-          value={`${rejected} request`}
-          icon={X}
-        >
+        <StatCard label="Ditolak" value={`${rejected} request`} icon={X}>
           <span className="bg-destructive-surface text-destructive-strong w-fit rounded-full px-2.5 py-0.5 text-[11px]">
             Sudah diputuskan
           </span>
@@ -151,7 +164,9 @@ export default function ApprovalsPage() {
                       <TableHead>Item</TableHead>
                       <TableHead className="w-24">Diminta</TableHead>
                       <TableHead className="w-28">Stok gudang</TableHead>
-                      <TableHead className="w-32">Sisa setelah keluar</TableHead>
+                      <TableHead className="w-32">
+                        Sisa setelah keluar
+                      </TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -164,13 +179,35 @@ export default function ApprovalsPage() {
                           </p>
                         </TableCell>
                         <TableCell className="text-xs font-medium">
-                          {row.qty} {row.item.unit}
+                          <div className="flex items-center gap-1.5">
+                            <Input
+                              type="number"
+                              min={1}
+                              max={row.item.stockGudang}
+                              value={qty[row.id] ?? row.qty}
+                              onFocus={(event) => event.target.select()}
+                              onChange={(event) =>
+                                setQty((prev) => ({
+                                  ...prev,
+                                  [row.id]: Math.max(
+                                    1,
+                                    Number(event.target.value) || 1,
+                                  ),
+                                }))
+                              }
+                              className="h-8 w-16 text-xs"
+                            />
+                            <span className="text-muted-foreground text-[10.5px]">
+                              {row.item.unit}
+                            </span>
+                          </div>
                         </TableCell>
                         <TableCell className="text-xs">
                           {row.item.stockGudang} {row.item.unit}
                         </TableCell>
                         <TableCell className="text-xs">
-                          {row.item.stockGudang - row.qty} {row.item.unit}
+                          {row.item.stockGudang - (qty[row.id] ?? row.qty)}{" "}
+                          {row.item.unit}
                         </TableCell>
                       </TableRow>
                     ))}
@@ -210,9 +247,7 @@ export default function ApprovalsPage() {
             </div>
 
             <div className="bg-card border-border flex flex-col gap-3 rounded-xl border p-4">
-              <p className="text-[13.5px] font-semibold">
-                Riwayat Persetujuan
-              </p>
+              <p className="text-[13.5px] font-semibold">Riwayat Persetujuan</p>
               <div className="flex gap-3">
                 <div className="bg-success-solid mt-1.5 size-2 shrink-0 rounded-full" />
                 <div className="flex-1">
@@ -261,11 +296,10 @@ export default function ApprovalsPage() {
                   onClick={() => {
                     setSelectedId(row.id);
                     setNote("");
+                    setQty({});
                   }}
                   className={`flex items-center gap-2 rounded-lg px-3 py-2 text-left ${
-                    row.id === selected.id
-                      ? "bg-muted"
-                      : "border-border border"
+                    row.id === selected.id ? "bg-muted" : "border-border border"
                   }`}
                 >
                   <div className="min-w-0 flex-1">

@@ -33,7 +33,9 @@ export async function POST(request: NextRequest) {
     const items: { itemId: string; qty: number }[] = body.items ?? [];
 
     if (!body.jobNo || !body.site || !body.neededAt || items.length === 0) {
-      return bad("Nomor pekerjaan, site, tanggal dibutuhkan, dan item wajib diisi.");
+      return bad(
+        "Nomor pekerjaan, site, tanggal dibutuhkan, dan item wajib diisi.",
+      );
     }
     if (items.some((row) => !row.itemId || Number(row.qty) <= 0)) {
       return bad("Jumlah setiap item harus lebih dari nol.");
@@ -83,18 +85,69 @@ export async function POST(request: NextRequest) {
 }
 
 export async function PATCH(request: NextRequest) {
-  const g = await guard(["ADMIN", "DIREKTUR"]);
+  const g = await guard(["ADMIN", "DIREKTUR", "LEADER"]);
   if (g.error) return g.error;
 
   try {
     const body = await request.json();
     const { id, action, note } = body;
-    if (!id || !["approve", "reject"].includes(action)) {
-      return bad("Aksi tidak valid.");
+    if (!id) return bad("Request wajib dipilih.");
+
+    const row = await prisma.request.findUnique({
+      where: { id },
+      include: { items: true },
+    });
+    if (!row) return bad("Request tidak ditemukan.", 404);
+
+    const items: { id: string; qty: number }[] = Array.isArray(body.items)
+      ? body.items
+      : [];
+    if (
+      items.some(
+        (item) =>
+          !Number.isInteger(item.qty) ||
+          item.qty <= 0 ||
+          !row.items.some((current) => current.id === item.id),
+      )
+    ) {
+      return bad("Jumlah setiap item harus bilangan bulat lebih dari nol.");
     }
 
-    const row = await prisma.request.findUnique({ where: { id } });
-    if (!row) return bad("Request tidak ditemukan.", 404);
+    if (g.user.role === "LEADER") {
+      if (row.leaderId !== g.user.id) {
+        return bad("Request ini bukan milik Anda.", 403);
+      }
+      if (row.status !== "PENDING_ADMIN") {
+        return bad("Request sudah diverifikasi Admin dan tidak dapat diubah.");
+      }
+      if (items.length === 0) return bad("Tidak ada jumlah item yang diubah.");
+
+      const updated = await prisma.$transaction(async (tx) => {
+        for (const item of items) {
+          await tx.requestItem.update({
+            where: { id: item.id },
+            data: { qty: item.qty },
+          });
+        }
+        return tx.request.update({ where: { id }, data: {}, include });
+      });
+
+      await prisma.auditLog.create({
+        data: {
+          actorId: g.user.id,
+          action: "UPDATE_ITEMS",
+          entity: "request",
+          entityId: id,
+          meta: JSON.stringify({ number: row.number, items }),
+        },
+      });
+
+      return NextResponse.json(updated);
+    }
+
+    if (!["approve", "reject"].includes(action)) {
+      return bad("Aksi tidak valid.");
+    }
 
     if (g.user.role === "ADMIN" && row.status !== "PENDING_ADMIN") {
       return bad("Request ini bukan bagian persetujuan Admin.");
@@ -103,40 +156,45 @@ export async function PATCH(request: NextRequest) {
       return bad("Request ini bukan bagian persetujuan Direktur.");
     }
 
-    if (g.user.role === "ADMIN") {
-      const updated = await prisma.request.update({
-        where: { id },
+    const data =
+      g.user.role === "ADMIN"
+        ? {
+            status: action === "approve" ? "PENDING_DIRECTOR" : "REJECTED",
+            adminId: g.user.id,
+            adminNote: note || null,
+            decidedAt: action === "reject" ? new Date() : null,
+          }
+        : {
+            status: action === "approve" ? "APPROVED" : "REJECTED",
+            directorId: g.user.id,
+            directorNote: note || null,
+            decidedAt: new Date(),
+          };
+
+    const updated = await prisma.$transaction(async (tx) => {
+      for (const item of items) {
+        await tx.requestItem.update({
+          where: { id: item.id },
+          data: { qty: item.qty },
+        });
+      }
+      return tx.request.update({ where: { id }, data, include });
+    });
+
+    if (g.user.role === "DIREKTUR") {
+      await prisma.auditLog.create({
         data: {
-          status: action === "approve" ? "PENDING_DIRECTOR" : "REJECTED",
-          adminId: g.user.id,
-          adminNote: note || null,
-          decidedAt: action === "reject" ? new Date() : null,
+          actorId: g.user.id,
+          action: action.toUpperCase(),
+          entity: "request",
+          entityId: id,
+          meta: JSON.stringify({
+            number: row.number,
+            ...(items.length ? { items } : {}),
+          }),
         },
-        include,
       });
-      return NextResponse.json(updated);
     }
-
-    const updated = await prisma.request.update({
-      where: { id },
-      data: {
-        status: action === "approve" ? "APPROVED" : "REJECTED",
-        directorId: g.user.id,
-        directorNote: note || null,
-        decidedAt: new Date(),
-      },
-      include,
-    });
-
-    await prisma.auditLog.create({
-      data: {
-        actorId: g.user.id,
-        action: action.toUpperCase(),
-        entity: "request",
-        entityId: id,
-        meta: JSON.stringify({ number: row.number }),
-      },
-    });
 
     return NextResponse.json(updated);
   } catch (error) {

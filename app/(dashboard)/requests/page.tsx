@@ -37,7 +37,12 @@ import {
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { useDecideRequest, useRequests } from "@/hooks/inventory/useRequests";
-import { formatDate, formatDateTime, inRange, uniqueValues } from "@/lib/format";
+import {
+  formatDate,
+  formatDateTime,
+  inRange,
+  uniqueValues,
+} from "@/lib/format";
 import { authClient } from "@/services/auth/authClients";
 import type { InventoryRequest } from "@/types/inventory";
 
@@ -62,6 +67,7 @@ export default function RequestsPage() {
   const [dateTo, setDateTo] = useState("");
   const [selected, setSelected] = useState<InventoryRequest | null>(null);
   const [note, setNote] = useState("");
+  const [qty, setQty] = useState<Record<string, number>>({});
 
   const customers = uniqueValues(rows.map((row) => row.customer));
 
@@ -94,15 +100,33 @@ export default function RequestsPage() {
     selected &&
     ((role === "ADMIN" && selected.status === "PENDING_ADMIN") ||
       (role === "DIREKTUR" && selected.status === "PENDING_DIRECTOR"));
+  const canEditItems =
+    !!selected &&
+    (canDecide || (role === "LEADER" && selected.status === "PENDING_ADMIN"));
 
-  async function submit(action: "approve" | "reject") {
+  async function submit(action?: "approve" | "reject") {
     if (!selected) return;
-    await decide.mutateAsync({ id: selected.id, action, note: note || undefined });
+    await decide.mutateAsync({
+      id: selected.id,
+      action,
+      note: note || undefined,
+      items: canEditItems
+        ? selected.items.map((item) => ({
+            id: item.id,
+            qty: qty[item.id] ?? item.qty,
+          }))
+        : undefined,
+    });
     toast.success(
-      action === "approve" ? "Request disetujui." : "Request ditolak.",
+      action === "approve"
+        ? "Request disetujui."
+        : action === "reject"
+          ? "Request ditolak."
+          : "Jumlah item diperbarui.",
     );
     setSelected(null);
     setNote("");
+    setQty({});
   }
 
   return (
@@ -138,14 +162,16 @@ export default function RequestsPage() {
                 ? rows.length
                 : item.value === "PENDING"
                   ? rows.filter((row) =>
-                      ["PENDING_ADMIN", "PENDING_DIRECTOR"].includes(row.status),
+                      ["PENDING_ADMIN", "PENDING_DIRECTOR"].includes(
+                        row.status,
+                      ),
                     ).length
                   : rows.filter((row) => row.status === item.value).length;
             return (
               <TabsTrigger
                 key={item.value}
                 value={item.value}
-                className="data-[state=active]:bg-transparent data-[state=active]:text-foreground text-muted-foreground rounded-none border-0 border-b-2 border-transparent px-0 pb-2.5 text-[12.5px] data-[state=active]:border-foreground data-[state=active]:shadow-none"
+                className="data-[state=active]:text-foreground text-muted-foreground data-[state=active]:border-foreground rounded-none border-0 border-b-2 border-transparent px-0 pb-2.5 text-[12.5px] data-[state=active]:bg-transparent data-[state=active]:shadow-none"
               >
                 {item.label}
                 <span className="bg-muted text-muted-foreground rounded-full px-1.5 py-0.5 text-[10.5px]">
@@ -236,6 +262,7 @@ export default function RequestsPage() {
                   onClick={() => {
                     setSelected(row);
                     setNote("");
+                    setQty({});
                   }}
                 >
                   <TableCell>
@@ -274,7 +301,10 @@ export default function RequestsPage() {
         persetujuan. Surat jalan diterbitkan setelah kedua approval selesai.
       </div>
 
-      <Dialog open={!!selected} onOpenChange={(open) => !open && setSelected(null)}>
+      <Dialog
+        open={!!selected}
+        onOpenChange={(open) => !open && setSelected(null)}
+      >
         <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-xl">
           {selected ? (
             <>
@@ -327,7 +357,34 @@ export default function RequestsPage() {
                           </p>
                         </TableCell>
                         <TableCell className="text-xs">
-                          {row.qty} {row.item.unit}
+                          {canEditItems ? (
+                            <div className="flex items-center gap-1.5">
+                              <Input
+                                type="number"
+                                min={1}
+                                max={row.item.stockGudang}
+                                value={qty[row.id] ?? row.qty}
+                                onFocus={(event) => event.target.select()}
+                                onChange={(event) =>
+                                  setQty((prev) => ({
+                                    ...prev,
+                                    [row.id]: Math.max(
+                                      1,
+                                      Number(event.target.value) || 1,
+                                    ),
+                                  }))
+                                }
+                                className="h-8 w-16 text-xs"
+                              />
+                              <span className="text-muted-foreground text-[10.5px]">
+                                {row.item.unit}
+                              </span>
+                            </div>
+                          ) : (
+                            <>
+                              {row.qty} {row.item.unit}
+                            </>
+                          )}
                         </TableCell>
                         <TableCell className="text-muted-foreground text-xs">
                           {row.item.stockGudang}
@@ -381,6 +438,12 @@ export default function RequestsPage() {
                     </Button>
                   </DialogFooter>
                 </div>
+              ) : canEditItems ? (
+                <DialogFooter>
+                  <Button onClick={() => submit()} disabled={decide.isPending}>
+                    Simpan Jumlah
+                  </Button>
+                </DialogFooter>
               ) : null}
             </>
           ) : null}
